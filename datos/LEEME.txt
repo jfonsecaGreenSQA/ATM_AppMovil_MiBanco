@@ -1,0 +1,69 @@
+Datos de prueba - Automatizacion App Mi Banco
+==============================================
+
+Esta carpeta contiene los clientes que usa la automatizacion. Los archivos con
+datos reales NO se versionan (estan excluidos en .gitignore): se solicitan al
+lider QA y se copian aqui en cada equipo.
+
+Archivos
+--------
+
+  Sabana_Cartera_BCT_*.xlsx      Sabana de cartera entregada por el banco (datos
+                                 reales). Es la fuente de los clientes. NO se versiona.
+
+  pool_clientes.xlsx             Listado de clientes que usa la automatizacion.
+                                 La automatizacion lo lee y lo actualiza en cada
+                                 ejecucion. NO se versiona.
+
+  pool_clientes_plantilla.xlsx   Plantilla vacia con la estructura del listado.
+                                 Es el unico archivo de datos que se versiona.
+
+Como preparar el listado
+------------------------
+
+1. Copie pool_clientes_plantilla.xlsx con el nombre pool_clientes.xlsx
+   (la ruta se configura en src/test/resources/config/ambiente.properties,
+   clave ruta.pool).
+2. En la hoja "Clientes" agregue una fila por cliente tomado de la sabana,
+   solo con estas reglas:
+     - Tipo de documento CC.
+     - ESTADOCLIENTE = ACTIVO en la sabana.
+3. Llene las columnas asi:
+     TIPO_DOC             CC
+     NUMERO_DOC           Columna ID de la sabana (solo digitos)
+     NOMBRE_SABANA        Nombre del cliente en la sabana (referencia)
+     ESTADO_REGISTRO      DISPONIBLE
+     CLAVE                Vacio (la automatizacion la escribe al registrar)
+     FECHA_ACTUALIZACION  Vacio (la escribe la automatizacion)
+     CASO                 Vacio (la escribe la automatizacion)
+     OBSERVACION          Vacio (la escribe la automatizacion)
+4. Guarde y cierre el archivo antes de ejecutar: si esta abierto en Excel la
+   automatizacion no lo puede actualizar.
+
+Como funciona
+-------------
+
+Con NumDocumento = AUTO en el archivo de control, la automatizacion toma el
+primer cliente DISPONIBLE, lo marca EN_USO y, segun el resultado, lo cambia:
+
+  DISPONIBLE            Cliente apto para registro. Nunca usado por la automatizacion.
+  EN_USO                Reservado por una ejecucion en curso. Si queda asi tras una
+                        caida, revisarlo y devolverlo a DISPONIBLE manualmente.
+  REGISTRADO            Registro completado; CLAVE tiene la clave creada.
+                        Sirve para los casos de Login y Home.
+  YA_REGISTRADO_PREVIO  La app indico que el documento ya estaba registrado. No se
+                        conoce su clave; se elimina del listado al final de cada
+                        ejecucion.
+  FALLIDO               El registro fallo por otra causa (ver OBSERVACION). No se
+                        reintenta automaticamente.
+
+Si una iteracion se cancela por indisponibilidad del sistema, el cliente vuelve
+a quedar DISPONIBLE. La hoja "Leyenda" del archivo repite estos estados.
+
+Cuidado con los datos
+---------------------
+
+- Los archivos tienen datos reales de clientes: no los suba al repositorio, no
+  los comparta por chat o correo y no copie documentos ni nombres en reportes.
+- Las claves del listado son de clientes registrados en el ambiente de
+  certificacion; tratelas como confidenciales.

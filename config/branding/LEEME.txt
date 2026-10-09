@@ -1,0 +1,12 @@
+Logos del reporte Allure
+========================
+
+Coloque aqui los logos (PNG, SVG o JPG) con estos nombres exactos:
+
+  logo_green.png     -> logo de GreenSQA (se muestra primero)
+  logo_cliente.png   -> logo de Mi Banco
+
+Se muestran en el encabezado del menu lateral del reporte a 34 px de alto.
+Recomendado: fondo transparente y proporcion horizontal (aprox. 3:1).
+Si no hay logos, el reporte conserva el logo de Allure.
+Los cambios aplican desde la siguiente ejecucion.
