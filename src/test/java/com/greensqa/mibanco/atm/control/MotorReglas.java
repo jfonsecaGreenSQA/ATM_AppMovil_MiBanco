@@ -45,6 +45,7 @@ public class MotorReglas {
                     case REGISTRO_EXITOSO_CC, REGISTRO_EXITOSO_CE, SMS_REGISTRO_EXITOSO_CC, SMS_REGISTRO_EXITOSO_CE -> reglasRegistroExitoso(fila, it, errores);
                     case LOGIN_EXITOSO_CC, LOGIN_EXITOSO_CE, HOME_SALUDO, HOME_ULTIMO_INGRESO, HOME_ACCESO_BREB, HOME_ACCESO_CREDITO,
                             HOME_MENU_INFERIOR -> reglasLogin(fila, it, errores);
+                    case RECUPERACION_CLAVE, RECUPERACION_CLAVE_OTP -> reglasRecuperacionClave(fila, it, errores);
                 }
             });
             if (errores.isEmpty()) {
@@ -67,6 +68,30 @@ public class MotorReglas {
             it.datosClave(fila.clave(), "tomada del control");
         }
 
+        reglasOtp(fila, it, errores);
+    }
+
+    /**
+     * Recuperacion de clave de un cliente registrado. NumDocumento AUTO (o vacio) toma un cliente REGISTRADO con clave
+     * del listado. Clave es la nueva: vacia se genera al ejecutar (RN-R07 y distinta de la actual); si se informa debe
+     * cumplir RN-R07.
+     */
+    private void reglasRecuperacionClave(FilaControl fila, Iteracion it, List<String> errores) {
+        reglasDocumento(fila, it, errores);
+
+        if (fila.clave().isBlank()) {
+            it.datosClave(null, "nueva, generada al ejecutar segun RN-R07 y distinta de la actual");
+        } else if (!GeneradorClave.cumpleRnR07(fila.clave())) {
+            errores.add("Clave nueva no cumple RN-R07 (4 digitos, sin 3 iguales consecutivos)");
+        } else {
+            it.datosClave(fila.clave(), "nueva, tomada del control");
+        }
+
+        reglasOtp(fila, it, errores);
+    }
+
+    /** OTP vacio = OTP de certificacion configurado (otp.defecto). */
+    private void reglasOtp(FilaControl fila, Iteracion it, List<String> errores) {
         String otp = fila.otp().isBlank() ? Config.get("otp.defecto") : fila.otp();
         if (!otp.matches("\\d{6}")) {
             errores.add("OTP debe tener 6 digitos");

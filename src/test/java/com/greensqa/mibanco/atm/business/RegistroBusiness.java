@@ -84,6 +84,11 @@ public class RegistroBusiness {
         return crearClave.estaVisible(Config.segundos("espera.segundos"));
     }
 
+    /** Error mostrado en la hoja del OTP, o vacio si no hay. */
+    public String errorOtp() {
+        return otp.estaVisible() ? otp.error() : "";
+    }
+
     /** @return true si la app sale de la creacion de clave y muestra la confirmacion del registro. */
     public boolean crearClaveAceptandoTerminos(String clave) {
         crearClave.ingresarClave(clave);

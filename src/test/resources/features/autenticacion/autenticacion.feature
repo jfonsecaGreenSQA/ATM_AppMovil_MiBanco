@@ -32,3 +32,14 @@ Feature: Autenticación y registro en la App Mi Banco
     Given que un cliente registrado está en la bienvenida de la app
     When inicia sesión con su tipo y número de documento y su clave
     Then ingresa al Home sin errores
+
+  # 38529 (principal) y 38526 (OTP del flujo de recuperacion). En la app la clave nueva se pide antes del OTP.
+  # El evento "Recuperacion de contrasena" del OTP no se muestra en la app: se verifica fuera de la UI.
+  @recuperacion @38529 @38526 @HappyPath
+  Scenario: Recuperación de clave con OTP válido
+    Given que un cliente registrado está en la bienvenida de la app
+    When solicita recuperar su clave con su tipo y número de documento
+    And crea una nueva clave válida
+    And confirma el cambio con el código OTP
+    Then ve la confirmación de clave cambiada con éxito
+    And al continuar llega al inicio de sesión

@@ -34,8 +34,9 @@ public class RegistroSteps {
 
     @And("valida su identidad con el código OTP")
     public void validaIdentidadConOtp() {
-        assertThat(registro.validarIdentidad(iteracion.otp()))
-                .as("Tras validar el OTP se muestra la creacion de clave")
+        boolean validado = registro.validarIdentidad(iteracion.otp());
+        assertThat(validado)
+                .as("Tras validar el OTP se muestra la creacion de clave. Error del OTP: '" + registro.errorOtp() + "'")
                 .isTrue();
     }
 

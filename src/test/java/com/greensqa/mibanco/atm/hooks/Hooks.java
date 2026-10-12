@@ -83,7 +83,12 @@ public class Hooks {
         if (!it.documentoReservado()) {
             return;
         }
-        if (ContextoIteracion.indisponibilidad() != null) {
+        if (it.reservaDeRegistrado()) {
+            // Recuperacion de clave: el cambio ya se envio y no se sabe que clave quedo. CLAVE conserva la anterior
+            PoolClientes.get().actualizar(it.tipoDocumento(), it.numDocumento(), PoolClientes.Estado.FALLIDO, null,
+                    it.caso().idAzure(), "Posible cambio de clave: iteracion " + it.idPrueba() + " fallo tras enviar la clave"
+                            + " nueva, en: " + ContextoIteracion.pasoFallido() + ". Verificar manualmente cual clave quedo");
+        } else if (ContextoIteracion.indisponibilidad() != null) {
             // El cliente no tuvo problema: vuelve a estar disponible para otra ejecucion
             PoolClientes.get().actualizar(it.tipoDocumento(), it.numDocumento(), PoolClientes.Estado.DISPONIBLE, null,
                     "", "Liberado: iteracion " + it.idPrueba() + " cancelada por indisponibilidad del sistema");

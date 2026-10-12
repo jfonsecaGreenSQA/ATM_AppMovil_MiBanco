@@ -26,6 +26,7 @@ public class Iteracion {
     private boolean documentoAutomatico;
     private String numDocumento;
     private boolean documentoReservado;
+    private boolean reservaDeRegistrado;
     private String clave;
     private String origenClave = "";
     private String otp;
@@ -122,9 +123,30 @@ public class Iteracion {
         this.clave = clave;
     }
 
+    /** Cliente registrado tomado del listado para recuperar su clave; su clave (la nueva) es la de la iteracion. */
+    public void usarDocumento(String numero) {
+        this.numDocumento = numero;
+    }
+
+    /** Clave nueva generada al ejecutar, cuando depende de la clave actual del cliente (recuperacion de clave). */
+    public void asignarClave(String clave) {
+        this.clave = clave;
+    }
+
+    /**
+     * Cliente REGISTRADO marcado EN_USO mientras su clave puede estar cambiando (recuperacion de clave). Si la iteracion
+     * falla, no vuelve a REGISTRADO ni a DISPONIBLE: no se sabe que clave quedo.
+     */
+    public void reservarClienteRegistrado(String numero) {
+        this.numDocumento = numero;
+        this.documentoReservado = true;
+        this.reservaDeRegistrado = true;
+    }
+
     /** El documento ya quedo con su estado final en el listado (se conserva como documento usado). */
     public void liberarDocumento() {
         this.documentoReservado = false;
+        this.reservaDeRegistrado = false;
     }
 
     /** El documento no sirvio (p. ej. ya registrado); con AUTO se tomara otro del listado. */
@@ -166,6 +188,7 @@ public class Iteracion {
     public boolean documentoAutomatico() { return documentoAutomatico; }
     public String numDocumento() { return numDocumento; }
     public boolean documentoReservado() { return documentoReservado; }
+    public boolean reservaDeRegistrado() { return reservaDeRegistrado; }
     public String clave() { return clave; }
     public String otp() { return otp; }
     public LocalDateTime inicio() { return inicio; }

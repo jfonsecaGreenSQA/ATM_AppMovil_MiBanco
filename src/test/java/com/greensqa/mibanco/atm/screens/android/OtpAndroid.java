@@ -11,6 +11,8 @@ public class OtpAndroid extends PantallaAndroid implements OtpScreen {
     // Un solo campo detras de las 6 casillas visibles
     private static final By CODIGO = rid("otp");
     private static final By VALIDAR = rid("kc-login");
+    // Observado en el emulador con un OTP invalido (2026-10-12)
+    private static final By ERROR = rid("otp-error");
 
     @Override
     public boolean estaVisible() {
@@ -30,5 +32,11 @@ public class OtpAndroid extends PantallaAndroid implements OtpScreen {
             cerrarTecladoTocando(TITULO);
         }
         tocar(VALIDAR);
+    }
+
+    @Override
+    public String error() {
+        return driver().findElements(ERROR).stream().map(e -> e.getText().trim()).filter(t -> !t.isEmpty())
+                .findFirst().orElse("");
     }
 }

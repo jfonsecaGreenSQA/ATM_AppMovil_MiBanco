@@ -2,12 +2,17 @@ package com.greensqa.mibanco.atm.screens.android;
 
 import com.greensqa.mibanco.atm.data.TipoDocumento;
 import com.greensqa.mibanco.atm.screens.LoginScreen;
+import io.appium.java_client.AppiumBy;
 import org.openqa.selenium.By;
+
+import java.time.Duration;
 
 /** Formulario de login (Keycloak). Selectores observados en el page source del Samsung S23 (Android 16). */
 public class LoginAndroid extends PantallaAndroid implements LoginScreen {
 
     private static final By FORMULARIO = rid("kc-form-login");
+    // Enlace sin id; expone su texto como content-desc (Test ID solicitado: login_olvide_clave_link)
+    private static final By OLVIDE_MI_CLAVE = AppiumBy.accessibilityId("¿Olvidaste tu contraseña?");
     private static final By TIPO_DOCUMENTO = rid("documentType");
     private static final By NUMERO_DOCUMENTO = rid("username");
     private static final By CLAVE = rid("password");
@@ -20,6 +25,21 @@ public class LoginAndroid extends PantallaAndroid implements LoginScreen {
     @Override
     public void esperarVisible() {
         esperarVisible(FORMULARIO);
+    }
+
+    @Override
+    public boolean estaVisible(Duration espera) {
+        return visibleEn(FORMULARIO, espera);
+    }
+
+    @Override
+    public boolean olvideMiClaveVisible(Duration espera) {
+        return visibleEn(OLVIDE_MI_CLAVE, espera);
+    }
+
+    @Override
+    public void olvideMiClave() {
+        tocar(OLVIDE_MI_CLAVE);
     }
 
     @Override

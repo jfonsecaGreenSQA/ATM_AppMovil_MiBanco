@@ -8,4 +8,7 @@ public interface OtpScreen {
     void ingresarCodigo(String codigo);
 
     void validar();
+
+    /** Mensaje de error del codigo (p. ej. "El código ingresado no es válido"), o vacio si no hay. Sin espera. */
+    String error();
 }

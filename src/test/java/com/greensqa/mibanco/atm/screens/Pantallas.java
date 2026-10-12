@@ -3,6 +3,7 @@ package com.greensqa.mibanco.atm.screens;
 import com.greensqa.mibanco.atm.config.Config;
 import com.greensqa.mibanco.atm.screens.android.BandejaSmsAndroid;
 import com.greensqa.mibanco.atm.screens.android.BienvenidaAndroid;
+import com.greensqa.mibanco.atm.screens.android.ClaveCambiadaAndroid;
 import com.greensqa.mibanco.atm.screens.android.CrearClaveAndroid;
 import com.greensqa.mibanco.atm.screens.android.DialogosSistemaAndroid;
 import com.greensqa.mibanco.atm.screens.android.HomeAndroid;
@@ -10,6 +11,7 @@ import com.greensqa.mibanco.atm.screens.android.IndisponibilidadAndroid;
 import com.greensqa.mibanco.atm.screens.android.LoginAndroid;
 import com.greensqa.mibanco.atm.screens.android.MenuMasAndroid;
 import com.greensqa.mibanco.atm.screens.android.OtpAndroid;
+import com.greensqa.mibanco.atm.screens.android.RecuperarClaveAndroid;
 import com.greensqa.mibanco.atm.screens.android.RegistroDocumentoAndroid;
 import com.greensqa.mibanco.atm.screens.android.RegistroExitosoAndroid;
 
@@ -63,6 +65,14 @@ public final class Pantallas {
 
     public static BandejaSmsScreen bandejaSms() {
         return android(BandejaSmsAndroid::new);
+    }
+
+    public static RecuperarClaveScreen recuperarClave() {
+        return android(RecuperarClaveAndroid::new);
+    }
+
+    public static ClaveCambiadaScreen claveCambiada() {
+        return android(ClaveCambiadaAndroid::new);
     }
 
     private static <T> T android(Supplier<T> implementacion) {

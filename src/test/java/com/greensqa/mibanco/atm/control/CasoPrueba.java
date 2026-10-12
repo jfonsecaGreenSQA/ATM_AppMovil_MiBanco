@@ -17,6 +17,8 @@ public enum CasoPrueba {
     SMS_REGISTRO_EXITOSO_CE("38503", "SMS por registro exitoso con CE", "Registro", TipoDocumento.CE, true),
     LOGIN_EXITOSO_CC("38519", "Login exitoso con CC", "Autenticacion", TipoDocumento.CC, false),
     LOGIN_EXITOSO_CE("38520", "Login exitoso con CE", "Autenticacion", TipoDocumento.CE, false),
+    RECUPERACION_CLAVE("38529", "Recuperacion de clave con CC", "Recuperacion de clave", TipoDocumento.CC, false),
+    RECUPERACION_CLAVE_OTP("38526", "OTP en la recuperacion de clave", "Recuperacion de clave", TipoDocumento.CC, false),
     HOME_SALUDO("38699", "Saludo y pregunta del Home", "Home", TipoDocumento.CC, false),
     HOME_ULTIMO_INGRESO("38700", "Ultimo ingreso en el encabezado del Home", "Home", TipoDocumento.CC, false),
     HOME_ACCESO_BREB("38703", "Acceso Bre-B en la parte superior del Home", "Home", TipoDocumento.CC, false),

@@ -11,7 +11,7 @@ Toda la operación (ambiente, ejecución y reportes) se hace desde el menú `ATM
 | Registro exitoso | 38498 (CC) · 38502 (CE) | **Automatizado** (un escenario, ambos tags). CE sin ejecutar: no hay clientes CE disponibles sin la línea de prueba |
 | Registro exitoso con envío de SMS | 38499 (CC) · 38503 (CE) | **Construido** (un escenario, ambos tags). 38503 ejecutado en el S23 el 09/10: registro exitoso y SMS recibido; la validación automática del SMS falló por un defecto de la espera, ya corregido. Quedan 2 clientes CE con la línea sin registrar |
 | Login exitoso → Home | 38519 (CC) · 38520 (CE) | **Automatizado con CC y CE** (un escenario, ambos tags) |
-| Recuperación de clave | 38529 · 38526 | Pendiente |
+| Recuperación de clave | 38529 · 38526 | **Construido** (un escenario, ambos tags). En la app la clave nueva se pide antes del OTP; el evento del OTP no se ve en la UI |
 | Home: encabezado | 38699 (saludo y pregunta) · 38700 (+ último ingreso) | **Automatizado**, un escenario por caso. El nombre del saludo no se valida |
 | Home: accesos directos | 38703 (Bre-B) · 38704 (Pedir Crédito) · 38711 (menú inferior) | **Automatizado**. Identidad visual y estado activo de Inicio: manual |
 | Home: productos, banner, skeleton | 38698, 38702, 38705 a 38710 | Pendiente |
@@ -100,6 +100,8 @@ Cada cambio de estado se guarda de inmediato porque el registro de un cliente es
 
 La columna `LINEA_SMS = SI` marca los clientes cuyo celular registrado es la línea de la SIM del celular de pruebas. Solo los casos de SMS los usan (con `AUTO`) y los demás casos nunca los toman. El login (`AUTO`) toma un cliente REGISTRADO con clave y no lo consume.
 
+La recuperación de clave (`AUTO`) toma el mismo cliente REGISTRADO que el login y **le cambia la clave**: al tocar Validar en el OTP lo marca EN_USO y, con la confirmación en pantalla, guarda la clave nueva y lo deja REGISTRADO. Si la iteración falla después de enviar el cambio, queda FALLIDO con la observación "Posible cambio de clave" para revisarlo a mano (no vuelve a DISPONIBLE ni siquiera por indisponibilidad).
+
 ### Casos de SMS
 
 Se ejecutan en el celular físico con la SIM de la línea de prueba (opción **3** del menú). La automatización lee la bandeja de SMS con UiAutomator2 (`mobile: listSms`) por medio de la app *Appium Settings*, que necesita el permiso de SMS; si el fabricante lo bloquea, concédalo en Ajustes › Aplicaciones. Solo se tienen en cuenta los SMS que llegan después de iniciar la iteración. Los textos esperados se configuran en `sms.patron.ingreso` y `sms.patron.registro`.
@@ -177,6 +179,8 @@ La metodología completa (etapas, puertas de confirmación, etiquetas de evidenc
 | `Unresolved compilation problem` al ejecutar | La extensión Java de VS Code compila en `target/` con un classpath desactualizado | La opción 4 hace `clean`. Para el IDE: clic derecho en `pom.xml` → *Reload Projects* |
 | Appium no abre sesión: `adbExec ... timed out` | El emulador quedó colgado al arrancar desde un snapshot dañado | Cerrarlo y abrirlo con *Cold Boot Now* (Device Manager) |
 | Todo responde "Validación fallida" | Sistema caído o conexión fuera de Colombia | Esperar, o conectar el equipo o celular por VPN a Colombia |
+| Falla un paso porque la app quedó en otra pantalla (p. ej. "Iniciar sesión" no aparece y la app ya está en el login) | Alguien tocó el celular durante la ejecución (observado el 12/10 en el S23: el logcat registró un toque que no hizo la automatización) | No usar el dispositivo mientras corre. Para confirmarlo, buscar `ViewPostIme pointer` en el logcat de la evidencia y compararlo con los tiempos de los pasos en Allure |
+| Recuperación de clave: el cliente queda FALLIDO con "Posible cambio de clave" | La iteración falló después de enviar el OTP y no se sabe qué clave quedó | Entrar con la clave del listado; si no funciona, recuperarla a mano y actualizar CLAVE y ESTADO_REGISTRO = REGISTRADO |
 
 ## Datos sensibles
 
