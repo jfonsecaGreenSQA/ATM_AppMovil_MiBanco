@@ -1,0 +1,16 @@
+# Datos de clientes: no se versionan (sabana y listado con datos reales).
+# Solo se versionan la plantilla vacia y el LEEME que explica como prepararlos.
+datos/*
+!datos/LEEME.txt
+!datos/pool_clientes_plantilla.xlsx
+# Salidas de ejecucion (reportes, evidencias, control con resultados)
+ejecuciones/
+# Herramientas descargadas por Maven (Allure CLI)
+herramientas/
+target/
+# Seleccion local del menu
+config/dispositivo_actual.txt
+# Binario confidencial de la app
+*.apk
+# Temporales de Excel
+~$*.xlsx
