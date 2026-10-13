@@ -41,6 +41,11 @@ Como preparar el listado
                           de la SIM del celular de pruebas (casos de SMS). Vacio en
                           los demas: los casos que no son de SMS nunca toman estos
                           clientes.
+     PRODUCTOS_HOME       Vacio (la escribe la automatizacion): productos que el
+                          cliente mostro en el Home (AHORRO, CORRIENTE, PRESTAMO,
+                          ROTATIVO, PRE_APROBADO o NINGUNO). Se actualiza en cada
+                          login o caso del Home y sirve para que los casos de
+                          productos con AUTO elijan un cliente que tenga el producto.
 4. Guarde y cierre el archivo antes de ejecutar: si esta abierto en Excel la
    automatizacion no lo puede actualizar.
 

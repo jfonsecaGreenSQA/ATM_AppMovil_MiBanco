@@ -45,6 +45,13 @@ public final class Evidencias {
         }
     }
 
+    /** Captura tomada fuera de la sesion de Appium (p. ej. por adb desde un hilo de observacion). */
+    public static void capturaPng(String nombre, byte[] png) {
+        if (png != null && png.length > 0) {
+            adjuntar(nombre, "image/png", "png", png);
+        }
+    }
+
     public static void codigoFuente(String nombre) {
         if (!DriverManager.activo()) {
             return;

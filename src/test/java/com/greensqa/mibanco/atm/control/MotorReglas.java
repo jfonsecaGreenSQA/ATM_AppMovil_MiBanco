@@ -2,8 +2,11 @@ package com.greensqa.mibanco.atm.control;
 
 import com.greensqa.mibanco.atm.config.Config;
 import com.greensqa.mibanco.atm.data.GeneradorClave;
+import com.greensqa.mibanco.atm.data.Montos;
 import com.greensqa.mibanco.atm.data.TipoDocumento;
+import com.greensqa.mibanco.atm.data.TipoProducto;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -44,8 +47,13 @@ public class MotorReglas {
                 switch (c) {
                     case REGISTRO_EXITOSO_CC, REGISTRO_EXITOSO_CE, SMS_REGISTRO_EXITOSO_CC, SMS_REGISTRO_EXITOSO_CE -> reglasRegistroExitoso(fila, it, errores);
                     case LOGIN_EXITOSO_CC, LOGIN_EXITOSO_CE, HOME_SALUDO, HOME_ULTIMO_INGRESO, HOME_ACCESO_BREB, HOME_ACCESO_CREDITO,
-                            HOME_MENU_INFERIOR -> reglasLogin(fila, it, errores);
+                            HOME_MENU_INFERIOR, HOME_SKELETON -> reglasLogin(fila, it, errores);
                     case RECUPERACION_CLAVE, RECUPERACION_CLAVE_OTP -> reglasRecuperacionClave(fila, it, errores);
+                    case HOME_PRODUCTO_AHORRO, HOME_PRODUCTO_CORRIENTE, HOME_PRODUCTO_PRESTAMO, HOME_PRODUCTO_ROTATIVO,
+                            HOME_PRODUCTO_PRE_APROBADO, HOME_SALDOS -> reglasProducto(fila, it, errores);
+                }
+                if (!c.deProductos() && !(fila.tipoProducto().isBlank() && fila.monto().isBlank())) {
+                    errores.add("TipoProducto y Monto solo aplican a los casos de productos del Home; deje vacias las columnas");
                 }
             });
             if (errores.isEmpty()) {
@@ -114,6 +122,36 @@ public class MotorReglas {
         } else {
             it.datosClave(fila.clave(), "tomada del control");
         }
+    }
+
+    /**
+     * Productos del Home: ingresa como en el login y valida un producto. TipoProducto vacio = el del caso; si se
+     * informa debe ser el del caso (en 38709 es obligatorio: el producto cuyo saldo se compara). Monto vacio = solo se
+     * valida el formato; en 38709 es obligatorio (saldo esperado segun el backend).
+     */
+    private void reglasProducto(FilaControl fila, Iteracion it, List<String> errores) {
+        reglasLogin(fila, it, errores);
+        CasoPrueba caso = it.caso();
+        Optional<TipoProducto> informado = TipoProducto.desde(fila.tipoProducto());
+        if (!fila.tipoProducto().isBlank() && informado.isEmpty()) {
+            errores.add("TipoProducto invalido: " + fila.tipoProducto() + " (AHORRO, CORRIENTE, PRESTAMO, ROTATIVO, PRE_APROBADO)");
+        }
+        Optional<TipoProducto> producto = caso.producto().or(() -> informado);
+        if (caso.producto().isPresent() && informado.isPresent() && informado.get() != caso.producto().get()) {
+            errores.add("El caso " + caso.idAzure() + " valida " + caso.producto().get() + "; TipoProducto es "
+                    + informado.get() + " (deje TipoProducto vacio o use el caso de ese producto)");
+        }
+        if (producto.isEmpty() && fila.tipoProducto().isBlank()) {
+            errores.add("TipoProducto es obligatorio en " + caso.idAzure() + ": indique el producto cuyo saldo se compara");
+        }
+
+        Optional<BigDecimal> monto = Montos.desdeControl(fila.monto());
+        if (!fila.monto().isBlank() && monto.isEmpty()) {
+            errores.add("Monto invalido: " + fila.monto() + " (numero, p. ej. 22746864.51)");
+        } else if (caso == CasoPrueba.HOME_SALDOS && monto.isEmpty()) {
+            errores.add("Monto es obligatorio en " + caso.idAzure() + ": saldo esperado del producto segun el backend");
+        }
+        producto.ifPresent(p -> it.datosProducto(p, monto.orElse(null)));
     }
 
     /** TipoDocumento (el del caso) y NumDocumento (6 a 11 digitos o AUTO). @return true si es AUTO */

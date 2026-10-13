@@ -1,7 +1,10 @@
 package com.greensqa.mibanco.atm.business;
 
+import com.greensqa.mibanco.atm.config.Config;
 import com.greensqa.mibanco.atm.control.Iteracion;
+import com.greensqa.mibanco.atm.evidence.Evidencias;
 import com.greensqa.mibanco.atm.screens.HomeScreen;
+import com.greensqa.mibanco.atm.screens.ObservacionCarga;
 import com.greensqa.mibanco.atm.screens.Pantallas;
 import io.qameta.allure.Allure;
 
@@ -26,6 +29,33 @@ public class HomeBusiness {
 
     private final HomeScreen home = Pantallas.home();
     private final LoginBusiness login = new LoginBusiness();
+
+    /**
+     * Lo observado en la carga del Home tras ingresar (38698).
+     *
+     * @param indicadoresDeCarga maximo de indicadores "Cargando..." vistos a la vez; 0 = no se vio el skeleton
+     * @param montosAlInicio     los montos aparecieron sin que se viera antes el skeleton (la carga fue mas rapida)
+     */
+    public record CargaHome(boolean llegoAlHome, int indicadoresDeCarga, boolean montosAlInicio, boolean montosAlTerminar) {
+    }
+
+    /**
+     * Ingresa y observa la carga del Home (38698). El skeleton dura unos 4 s y, mientras el Home carga, cada consulta
+     * por UiAutomator tarda 1-5 s: la observacion corre en segundo plano desde antes de tocar Ingresar.
+     */
+    public CargaHome ingresarObservandoCarga(Iteracion it) {
+        try (ObservacionCarga observacion = home.observarCarga()) {
+            login.iniciarSesion(it);
+            if (!home.estaVisible() && !login.homeVisible()) {
+                return new CargaHome(false, observacion.maximoIndicadores(), false, false);
+            }
+            observacion.esperarFin(Config.segundos("espera.segundos"));
+            observacion.capturaSkeleton().ifPresent(png -> Evidencias.capturaPng("Skeleton de carga del Home", png));
+            Evidencias.captura("Home cargado");
+            return new CargaHome(true, observacion.maximoIndicadores(), observacion.montosAntesDelSkeleton(),
+                    observacion.terminoConMontos());
+        }
+    }
 
     /**
      * Precondicion de 38700: el cliente debe tener un ingreso previo para que aparezca "Ultimo ingreso". Si es su

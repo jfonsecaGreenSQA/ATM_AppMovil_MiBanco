@@ -2,7 +2,9 @@ package com.greensqa.mibanco.atm.control;
 
 import com.greensqa.mibanco.atm.data.Enmascarador;
 import com.greensqa.mibanco.atm.data.TipoDocumento;
+import com.greensqa.mibanco.atm.data.TipoProducto;
 
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -30,6 +32,8 @@ public class Iteracion {
     private String clave;
     private String origenClave = "";
     private String otp;
+    private TipoProducto tipoProducto;
+    private BigDecimal montoEsperado;
 
     private LocalDateTime inicio;
     private Duration duracion;
@@ -71,6 +75,12 @@ public class Iteracion {
 
     void datosOtp(String otp) {
         this.otp = otp;
+    }
+
+    /** @param montoEsperado null si el control no informa Monto (solo se valida el formato) */
+    void datosProducto(TipoProducto tipo, BigDecimal montoEsperado) {
+        this.tipoProducto = tipo;
+        this.montoEsperado = montoEsperado;
     }
 
     void identificarCaso(CasoPrueba caso) {
@@ -176,6 +186,8 @@ public class Iteracion {
                 + "\nNumDocumento: " + (numDocumento == null ? "AUTO (listado de clientes)" : Enmascarador.documento(numDocumento))
                 + "\nClave: " + origenClave + " (****)"
                 + "\nOTP: " + (otp == null ? "" : "*".repeat(otp.length()))
+                + (tipoProducto == null ? "" : "\nTipoProducto: " + tipoProducto
+                + "\nMonto esperado: " + (montoEsperado == null ? "(no informado: solo se valida el formato)" : "informado"))
                 + "\nObservaciones: " + fila.observaciones();
     }
 
@@ -191,6 +203,8 @@ public class Iteracion {
     public boolean reservaDeRegistrado() { return reservaDeRegistrado; }
     public String clave() { return clave; }
     public String otp() { return otp; }
+    public TipoProducto tipoProducto() { return tipoProducto; }
+    public BigDecimal montoEsperado() { return montoEsperado; }
     public LocalDateTime inicio() { return inicio; }
     public Duration duracion() { return duracion; }
     public Path carpetaEvidencias() { return carpetaEvidencias; }

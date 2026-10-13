@@ -30,6 +30,24 @@ public final class Adb {
         }
     }
 
+    /** Salida binaria del comando (p. ej. exec-out screencap -p); no mezcla la salida de error. */
+    public static byte[] binario(String udid, String... argumentos) throws IOException {
+        String[] comando = new String[argumentos.length + 3];
+        comando[0] = ruta();
+        comando[1] = "-s";
+        comando[2] = udid;
+        System.arraycopy(argumentos, 0, comando, 3, argumentos.length);
+        Process p = new ProcessBuilder(comando).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+        try (InputStream in = p.getInputStream()) {
+            byte[] salida = in.readAllBytes();
+            p.waitFor();
+            return salida;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return new byte[0];
+        }
+    }
+
     /** adb del SDK (ANDROID_HOME, ANDROID_SDK_ROOT o la ruta por defecto de Android Studio); si no existe, el del PATH. */
     private static String ruta() {
         String ejecutable = System.getProperty("os.name").toLowerCase().contains("win") ? "adb.exe" : "adb";

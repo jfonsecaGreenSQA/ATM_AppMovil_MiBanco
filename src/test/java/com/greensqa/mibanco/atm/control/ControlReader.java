@@ -22,7 +22,8 @@ public final class ControlReader {
 
     public static final String HOJA = "Control";
     static final List<String> COLUMNAS = List.of(
-            "Caso", "IdPrueba", "Ejecutar", "TipoDocumento", "NumDocumento", "Clave", "OTP", "Observaciones");
+            "Caso", "IdPrueba", "Ejecutar", "TipoDocumento", "NumDocumento", "Clave", "OTP", "TipoProducto", "Monto",
+            "Observaciones");
 
     private ControlReader() {
     }
@@ -45,7 +46,7 @@ public final class ControlReader {
                 if (String.join("", v).isBlank()) {
                     continue;
                 }
-                filas.add(new FilaControl(r, v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7]));
+                filas.add(new FilaControl(r, v[0], v[1], v[2], v[3], v[4], v[5], v[6], v[7], v[8], v[9]));
             }
             return filas;
         } catch (IOException e) {

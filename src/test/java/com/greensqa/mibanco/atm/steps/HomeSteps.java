@@ -8,6 +8,7 @@ import com.greensqa.mibanco.atm.control.Iteracion;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
+import io.qameta.allure.Allure;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -22,6 +23,7 @@ public class HomeSteps {
     private final LoginBusiness login = new LoginBusiness();
     private final HomeBusiness home = new HomeBusiness();
     private final Iteracion iteracion = ContextoIteracion.actual();
+    private HomeBusiness.CargaHome carga;
 
     @Given("que un cliente registrado inició sesión en la app")
     public void clienteInicioSesion() {
@@ -38,6 +40,29 @@ public class HomeSteps {
         assertThat(home.asegurarIngresoPrevio(iteracion))
                 .as("El cliente tiene un ingreso previo (se muestra 'Último ingreso')")
                 .isTrue();
+    }
+
+    @Given("que un cliente registrado inicia sesión y el Home empieza a cargar")
+    public void clienteIniciaSesionYHomeCarga() {
+        assertThat(inicio.irABienvenida()).as("La app muestra la pantalla de bienvenida").isTrue();
+        carga = home.ingresarObservandoCarga(iteracion);
+        assertThat(carga.llegoAlHome())
+                .as("Se muestra el Home tras ingresar. Aviso de la app: '%s'", carga.llegoAlHome() ? "" : login.avisoTrasIngresar())
+                .isTrue();
+    }
+
+    @Then("mientras cargan los saldos ve el indicador de carga en las secciones de productos")
+    public void veIndicadorDeCarga() {
+        assertThat(carga.indicadoresDeCarga())
+                .as("Indicador de carga 'Cargando...' (skeleton) en Tus cuentas / Tus creditos antes de mostrar los saldos%s",
+                        carga.montosAlInicio() ? ". Los montos ya estaban visibles en el primer chequeo tras ingresar" : "")
+                .isGreaterThan(0);
+        Allure.step("Secciones con indicador de carga a la vez: " + carga.indicadoresDeCarga());
+    }
+
+    @And("al terminar la carga ve sus productos con los montos")
+    public void alTerminarVeProductosConMontos() {
+        assertThat(carga.montosAlTerminar()).as("Al terminar la carga se muestran los montos de los productos").isTrue();
     }
 
     @Then("ve el saludo de bienvenida")

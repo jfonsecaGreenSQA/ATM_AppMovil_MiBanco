@@ -1,6 +1,7 @@
 package com.greensqa.mibanco.atm.control;
 
 import com.greensqa.mibanco.atm.data.TipoDocumento;
+import com.greensqa.mibanco.atm.data.TipoProducto;
 
 import java.util.Arrays;
 import java.util.Optional;
@@ -23,13 +24,24 @@ public enum CasoPrueba {
     HOME_ULTIMO_INGRESO("38700", "Ultimo ingreso en el encabezado del Home", "Home", TipoDocumento.CC, false),
     HOME_ACCESO_BREB("38703", "Acceso Bre-B en la parte superior del Home", "Home", TipoDocumento.CC, false),
     HOME_ACCESO_CREDITO("38704", "Acceso Pedir Credito en la parte superior del Home", "Home", TipoDocumento.CC, false),
-    HOME_MENU_INFERIOR("38711", "Menu inferior del Home", "Home", TipoDocumento.CC, false);
+    HOME_MENU_INFERIOR("38711", "Menu inferior del Home", "Home", TipoDocumento.CC, false),
+    HOME_SKELETON("38698", "Skeleton de carga del Home", "Home", TipoDocumento.CC, false),
+    // Productos del Home: un mismo escenario; el producto viene del caso o de la columna TipoProducto (38709)
+    HOME_PRODUCTO_AHORRO("38705", "Producto cuenta de ahorro en el Home", "Home", TipoDocumento.CC, TipoProducto.AHORRO),
+    HOME_PRODUCTO_CORRIENTE("38706", "Producto cuenta corriente en el Home", "Home", TipoDocumento.CC, TipoProducto.CORRIENTE),
+    HOME_PRODUCTO_PRESTAMO("38707", "Producto credito de libre inversion (Prestamos) en el Home", "Home", TipoDocumento.CC,
+            TipoProducto.PRESTAMO),
+    HOME_PRODUCTO_ROTATIVO("38708", "Producto credito rotativo en el Home", "Home", TipoDocumento.CC, TipoProducto.ROTATIVO),
+    HOME_PRODUCTO_PRE_APROBADO("38702", "Credito pre-aprobado en el Home", "Home", TipoDocumento.CC, TipoProducto.PRE_APROBADO),
+    HOME_SALDOS("38709", "Saldos de los productos en el Home", "Home", TipoDocumento.CC, null);
 
     private final String idAzure;
     private final String nombre;
     private final String proceso;
     private final TipoDocumento tipoDocumento;
     private final boolean requiereLineaSms;
+    private final TipoProducto producto;
+    private final boolean deProductos;
 
     CasoPrueba(String idAzure, String nombre, String proceso, TipoDocumento tipoDocumento, boolean requiereLineaSms) {
         this.idAzure = idAzure;
@@ -37,6 +49,19 @@ public enum CasoPrueba {
         this.proceso = proceso;
         this.tipoDocumento = tipoDocumento;
         this.requiereLineaSms = requiereLineaSms;
+        this.producto = null;
+        this.deProductos = false;
+    }
+
+    /** Caso de productos del Home; {@code producto} null = lo define la columna TipoProducto del control. */
+    CasoPrueba(String idAzure, String nombre, String proceso, TipoDocumento tipoDocumento, TipoProducto producto) {
+        this.idAzure = idAzure;
+        this.nombre = nombre;
+        this.proceso = proceso;
+        this.tipoDocumento = tipoDocumento;
+        this.requiereLineaSms = false;
+        this.producto = producto;
+        this.deProductos = true;
     }
 
     public String idAzure() {
@@ -59,6 +84,15 @@ public enum CasoPrueba {
     /** El cliente debe tener como celular la linea de la SIM del dispositivo (LINEA_SMS = SI en el listado). */
     public boolean requiereLineaSms() {
         return requiereLineaSms;
+    }
+
+    /** Producto que valida el caso de productos del Home; vacio si lo define el control (38709) o no aplica. */
+    public Optional<TipoProducto> producto() {
+        return Optional.ofNullable(producto);
+    }
+
+    public boolean deProductos() {
+        return deProductos;
     }
 
     public String tag() {

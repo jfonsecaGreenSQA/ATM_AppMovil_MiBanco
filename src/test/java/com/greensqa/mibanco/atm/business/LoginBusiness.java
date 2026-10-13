@@ -75,7 +75,8 @@ public class LoginBusiness {
     }
 
     private void resolverCliente(Iteracion it) {
-        if (it.documentoAutomatico()) {
+        // Con AUTO, otro componente pudo elegir ya al cliente (p. ej. por producto del Home): se respeta
+        if (it.documentoAutomatico() && it.numDocumento() == null) {
             PoolClientes.ClienteRegistrado cliente = PoolClientes.get().registradoConClave(it.tipoDocumento())
                     .orElseThrow(() -> new IllegalStateException("Dato no apto: no hay clientes " + it.tipoDocumento()
                             + " REGISTRADO con clave en el listado"));

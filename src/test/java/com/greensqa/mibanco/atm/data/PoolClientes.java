@@ -17,7 +17,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Listado unico de clientes (datos/pool_clientes.xlsx): estado de registro y clave de cada documento.
@@ -31,8 +37,13 @@ public final class PoolClientes {
     public record ClienteRegistrado(String numero, String clave) {
     }
 
-    private static final int TIPO = 0, NUMERO = 1, ESTADO = 3, CLAVE = 4, FECHA = 5, CASO = 6, OBS = 7, LINEA_SMS = 8;
+    private static final int TIPO = 0, NUMERO = 1, ESTADO = 3, CLAVE = 4, FECHA = 5, CASO = 6, OBS = 7, LINEA_SMS = 8,
+            PRODUCTOS_HOME = 9;
+    /** Encabezados de columnas agregadas despues de la version inicial del listado; se crean si faltan. */
+    private static final Map<Integer, String> ENCABEZADOS_NUEVOS = Map.of(LINEA_SMS, "LINEA_SMS", PRODUCTOS_HOME, "PRODUCTOS_HOME");
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+    /** Valor de PRODUCTOS_HOME cuando el cliente ya se reviso y no mostro ningun producto conocido. */
+    private static final String NINGUNO = "NINGUNO";
     private static PoolClientes instancia;
 
     private final Path archivo;
@@ -91,6 +102,52 @@ public final class PoolClientes {
             }
         }
         return Optional.ofNullable(conLinea);
+    }
+
+    /**
+     * Clientes REGISTRADO con clave candidatos para un producto del Home, en orden de preferencia: primero los que ya
+     * mostraron el producto (PRODUCTOS_HOME), luego los que aun no se han revisado (PRODUCTOS_HOME vacio). Dentro de
+     * cada grupo, los que no tienen LINEA_SMS primero. Los revisados que no tienen el producto se excluyen.
+     */
+    public synchronized List<ClienteRegistrado> registradosParaProducto(TipoDocumento tipo, TipoProducto producto) {
+        cargar();
+        List<ClienteRegistrado> conProducto = new ArrayList<>();
+        List<ClienteRegistrado> sinRevisar = new ArrayList<>();
+        List<ClienteRegistrado> conLinea = new ArrayList<>();
+        for (int r = 1; r <= hoja.getLastRowNum(); r++) {
+            Row row = hoja.getRow(r);
+            if (row == null || !tipo.name().equals(texto(row, TIPO)) || !Estado.REGISTRADO.name().equals(texto(row, ESTADO))
+                    || texto(row, CLAVE).isEmpty()) {
+                continue;
+            }
+            Set<String> productos = productosDe(row);
+            ClienteRegistrado cliente = new ClienteRegistrado(texto(row, NUMERO), texto(row, CLAVE));
+            if (tieneLineaSms(row)) {
+                if (productos.isEmpty() || productos.contains(producto.name())) {
+                    conLinea.add(cliente);
+                }
+            } else if (productos.contains(producto.name())) {
+                conProducto.add(cliente);
+            } else if (productos.isEmpty()) {
+                sinRevisar.add(cliente);
+            }
+        }
+        List<ClienteRegistrado> candidatos = new ArrayList<>(conProducto);
+        candidatos.addAll(sinRevisar);
+        candidatos.addAll(conLinea);
+        return candidatos;
+    }
+
+    /** Guarda los productos que el cliente mostro en el Home (inventario para elegir clientes por producto). */
+    public synchronized void registrarProductos(TipoDocumento tipo, String numero, Set<TipoProducto> productos) {
+        cargar();
+        Optional<Row> row = buscar(tipo, numero);
+        if (row.isEmpty()) {
+            return;
+        }
+        String valor = productos.isEmpty() ? NINGUNO : productos.stream().map(Enum::name).sorted().collect(Collectors.joining(","));
+        escribir(row.get(), PRODUCTOS_HOME, valor);
+        guardar();
     }
 
     /** Clave guardada de un documento REGISTRADO. */
@@ -188,6 +245,16 @@ public final class PoolClientes {
             if (hoja == null) {
                 throw new IllegalStateException("El listado de clientes no tiene la hoja 'Clientes'");
             }
+            Row cabecera = hoja.getRow(0);
+            ENCABEZADOS_NUEVOS.forEach((col, nombre) -> {
+                if (cabecera != null && texto(cabecera, col).isEmpty()) {
+                    escribir(cabecera, col, nombre);
+                    Cell referencia = cabecera.getCell(NUMERO);
+                    if (referencia != null) {
+                        cabecera.getCell(col).setCellStyle(referencia.getCellStyle());
+                    }
+                }
+            });
         } catch (IOException e) {
             throw new IllegalStateException("No se pudo leer el listado de clientes " + archivo, e);
         }
@@ -204,6 +271,14 @@ public final class PoolClientes {
             throw new IllegalStateException("No se pudo guardar " + archivo.getFileName()
                     + ". Verifique que el archivo no este abierto en Excel.", e);
         }
+    }
+
+    private Set<String> productosDe(Row row) {
+        String valor = texto(row, PRODUCTOS_HOME);
+        if (valor.isEmpty()) {
+            return Set.of();
+        }
+        return Arrays.stream(valor.split(",")).map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toSet());
     }
 
     private boolean tieneLineaSms(Row row) {

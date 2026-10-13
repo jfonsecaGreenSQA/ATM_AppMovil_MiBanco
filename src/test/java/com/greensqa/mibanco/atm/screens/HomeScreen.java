@@ -27,6 +27,18 @@ public interface HomeScreen {
     /** Etiquetas de los botones del menu inferior, de izquierda a derecha. */
     List<String> accesosMenuInferior();
 
+    /**
+     * Productos del cliente en el Home (cuentas, creditos y banner de pre-aprobado), recorriendo la pantalla hasta el
+     * final. Espera a que terminen de cargar (sin skeleton).
+     */
+    List<ProductoHome> productos();
+
+    /**
+     * Empieza a observar en segundo plano la carga del Home (skeleton "Cargando..." y montos). Se inicia antes de
+     * ingresar: el skeleton dura pocos segundos.
+     */
+    ObservacionCarga observarCarga();
+
     void abrirMenuMas();
 
     boolean hayAviso();

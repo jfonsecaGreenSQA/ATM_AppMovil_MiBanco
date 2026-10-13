@@ -9,5 +9,7 @@ public record FilaControl(int fila,
                           String numDocumento,
                           String clave,
                           String otp,
+                          String tipoProducto,
+                          String monto,
                           String observaciones) {
 }

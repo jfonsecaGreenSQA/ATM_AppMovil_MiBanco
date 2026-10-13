@@ -41,3 +41,21 @@ Feature: Home de la App Mi Banco
   Scenario: Menú inferior del Home
     Given que un cliente registrado inició sesión en la app
     Then ve el menú inferior con los accesos "Inicio, Operaciones, QR, Para ti, Más" en ese orden
+
+  # Productos del cliente: 38705 (ahorro), 38706 (corriente), 38707 (prestamos / libre inversion), 38708 (rotativo),
+  # 38702 (pre-aprobado) y 38709 (saldos). El producto viene del caso o de la columna TipoProducto del control y el
+  # monto esperado de la columna Monto. Con AUTO se busca en el listado un cliente que muestre el producto.
+  # Los textos validados son los observados en la app (control de cambios en Consolidacion_Casos_de_Prueba.docx).
+  @productos @38705 @38706 @38707 @38708 @38702 @38709 @HappyPath
+  Scenario: Producto del cliente en el Home
+    Given que un cliente registrado con el producto del archivo de control inició sesión en la app
+    Then ve el producto en su sección del Home con su información y formato
+    And el monto del producto coincide con el esperado del archivo de control
+
+  # El skeleton dura pocos segundos (3 a 4 observados): se observa dentro del paso de ingreso, antes de las capturas
+  # automaticas de cada paso. Durante la carga, Tus cuentas y Tus creditos muestran el texto "Cargando...".
+  @38698
+  Scenario: Skeleton de carga mientras el Home obtiene los saldos
+    Given que un cliente registrado inicia sesión y el Home empieza a cargar
+    Then mientras cargan los saldos ve el indicador de carga en las secciones de productos
+    And al terminar la carga ve sus productos con los montos
