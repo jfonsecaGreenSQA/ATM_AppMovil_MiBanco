@@ -7,9 +7,12 @@ import com.greensqa.mibanco.atm.control.Iteracion;
 import com.greensqa.mibanco.atm.control.MotorReglas;
 import com.greensqa.mibanco.atm.control.ResultadoControlWriter;
 import com.greensqa.mibanco.atm.data.PoolClientes;
+import com.greensqa.mibanco.atm.hooks.ConteoEscenarios;
 import com.greensqa.mibanco.atm.report.ReporteAllure;
 import io.cucumber.core.cli.Main;
 
+import java.io.OutputStream;
+import java.io.PrintStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
@@ -42,6 +45,7 @@ public final class Orquestador {
         Path control = Config.ruta("ruta.control");
         titulo("Ejecucion " + ejecucion.getFileName() + " | control: " + control.getFileName());
         List<Iteracion> iteraciones = new MotorReglas().evaluar(ControlReader.leer(control));
+        verificarEscenarios(iteraciones);
 
         int maximoIndisponibilidad = Config.entero("indisponibilidad.max.iteraciones");
         int fallidasIndisponibilidad = 0;
@@ -99,6 +103,41 @@ public final class Orquestador {
         System.out.println("Reporte:                 " + reporte);
         // 2 = detenida por indisponibilidad; 1 = hubo fallas; 0 = sin fallas
         System.exit(novedad != null ? 2 : fallidas > 0 ? 1 : 0);
+    }
+
+    /**
+     * Cada fila ejecuta los escenarios con el tag de su caso: si el tag esta en varios escenarios (p. ej. un feature
+     * duplicado), la fila correria todos y un registro consumiria varios clientes. Antes de abrir la app se recorren
+     * los features sin ejecutarlos (dry-run) y la fila cuyo tag no tenga exactamente un escenario queda NO EJECUTADA.
+     */
+    private static void verificarEscenarios(List<Iteracion> iteraciones) {
+        ConteoEscenarios.reiniciar();
+        // Cucumber imprime su resumen ("N Scenarios passed") aun en dry-run: en consola pareceria una ejecucion
+        PrintStream consola = System.out;
+        System.setOut(new PrintStream(OutputStream.nullOutputStream()));
+        try {
+            Main.run(new String[]{
+                    "--dry-run",
+                    "--glue", "com.greensqa.mibanco.atm.steps",
+                    "--plugin", "com.greensqa.mibanco.atm.hooks.ConteoEscenarios",
+                    "--monochrome",
+                    "classpath:features"
+            }, Thread.currentThread().getContextClassLoader());
+        } finally {
+            System.setOut(consola);
+        }
+        for (Iteracion it : iteraciones) {
+            if (it.estado() != Iteracion.Estado.LISTA) {
+                continue;
+            }
+            int escenarios = ConteoEscenarios.escenarios(it.caso().tag());
+            if (escenarios == 0) {
+                it.noEjecutada("No existe escenario con el tag " + it.caso().tag());
+            } else if (escenarios > 1) {
+                it.noEjecutada("El tag " + it.caso().tag() + " esta en " + escenarios
+                        + " escenarios de los features; cada caso debe tener uno solo (revise escenarios duplicados)");
+            }
+        }
     }
 
     private static void ejecutar(Iteracion it, Path evidencias, Path resultados) throws Exception {

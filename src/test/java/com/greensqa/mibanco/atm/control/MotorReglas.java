@@ -21,6 +21,8 @@ import java.util.Set;
 public class MotorReglas {
 
     static final String AUTO = "AUTO";
+    /** Con un documento informado la automatizacion no conoce ni inventa la clave: debe venir en el control. */
+    static final String CLAVE_OBLIGATORIA = "Con NumDocumento informado (no AUTO) la Clave es obligatoria: indique ";
 
     public List<Iteracion> evaluar(List<FilaControl> filas) {
         Set<String> ids = new HashSet<>();
@@ -66,9 +68,11 @@ public class MotorReglas {
     }
 
     private void reglasRegistroExitoso(FilaControl fila, Iteracion it, List<String> errores) {
-        reglasDocumento(fila, it, errores);
+        boolean auto = reglasDocumento(fila, it, errores);
 
-        if (fila.clave().isBlank()) {
+        if (fila.clave().isBlank() && !auto) {
+            errores.add(CLAVE_OBLIGATORIA + "la clave que se crea en el registro");
+        } else if (fila.clave().isBlank()) {
             it.datosClave(GeneradorClave.generar(), "generada segun RN-R07");
         } else if (!GeneradorClave.cumpleRnR07(fila.clave())) {
             errores.add("Clave no cumple RN-R07 (4 digitos, sin 3 iguales consecutivos) para un registro exitoso");
@@ -81,13 +85,15 @@ public class MotorReglas {
 
     /**
      * Recuperacion de clave de un cliente registrado. NumDocumento AUTO (o vacio) toma un cliente REGISTRADO con clave
-     * del listado. Clave es la nueva: vacia se genera al ejecutar (RN-R07 y distinta de la actual); si se informa debe
-     * cumplir RN-R07.
+     * del listado. Clave es la nueva: con AUTO, vacia se genera al ejecutar (RN-R07 y distinta de la actual); con un
+     * documento informado es obligatoria. Si se informa debe cumplir RN-R07.
      */
     private void reglasRecuperacionClave(FilaControl fila, Iteracion it, List<String> errores) {
-        reglasDocumento(fila, it, errores);
+        boolean auto = reglasDocumento(fila, it, errores);
 
-        if (fila.clave().isBlank()) {
+        if (fila.clave().isBlank() && !auto) {
+            errores.add(CLAVE_OBLIGATORIA + "la clave nueva que queda tras la recuperacion");
+        } else if (fila.clave().isBlank()) {
             it.datosClave(null, "nueva, generada al ejecutar segun RN-R07 y distinta de la actual");
         } else if (!GeneradorClave.cumpleRnR07(fila.clave())) {
             errores.add("Clave nueva no cumple RN-R07 (4 digitos, sin 3 iguales consecutivos)");
@@ -109,11 +115,13 @@ public class MotorReglas {
 
     /**
      * Login con un cliente ya registrado. Con NumDocumento AUTO (o vacio) se toma un cliente REGISTRADO del listado
-     * con su clave; con un documento informado, la clave vacia se toma del listado. El login no consume clientes.
+     * con su clave; con un documento informado la clave es obligatoria en el control. El login no consume clientes.
      */
     private void reglasLogin(FilaControl fila, Iteracion it, List<String> errores) {
         boolean auto = reglasDocumento(fila, it, errores);
-        if (fila.clave().isBlank()) {
+        if (fila.clave().isBlank() && !auto) {
+            errores.add(CLAVE_OBLIGATORIA + "la clave actual del cliente");
+        } else if (fila.clave().isBlank()) {
             it.datosClave(null, "tomada del listado de clientes");
         } else if (auto) {
             errores.add("Con NumDocumento AUTO la clave se toma del listado de clientes: deje Clave vacia");

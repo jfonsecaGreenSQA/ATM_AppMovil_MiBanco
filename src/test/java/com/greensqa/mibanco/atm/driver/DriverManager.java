@@ -5,6 +5,7 @@ import io.appium.java_client.Setting;
 import io.appium.java_client.android.AndroidDriver;
 import io.appium.java_client.android.options.UiAutomator2Options;
 import io.appium.java_client.appmanagement.ApplicationState;
+import org.openqa.selenium.SessionNotCreatedException;
 
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -29,14 +30,27 @@ public final class DriverManager {
                 .setNewCommandTimeout(Duration.ofMinutes(5))
                 .setUiautomator2ServerLaunchTimeout(Duration.ofSeconds(90));
         opciones.setCapability("appium:autoLaunch", false);
+        // Con el equipo sin memoria libre adb responde lento: el limite por defecto (20 s) corta los comandos
+        opciones.setCapability("appium:adbExecTimeout", Config.entero("adb.timeout.ms"));
         String udid = Config.get("device.udid");
         if (!udid.isBlank()) {
             opciones.setUdid(udid);
         }
-        try {
-            driver = new AndroidDriver(URI.create(Config.get("appium.url")).toURL(), opciones);
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException("appium.url invalida: " + Config.get("appium.url"), e);
+        int intentos = Config.entero("sesion.intentos");
+        for (int intento = 1; ; intento++) {
+            try {
+                driver = new AndroidDriver(URI.create(Config.get("appium.url")).toURL(), opciones);
+                break;
+            } catch (MalformedURLException e) {
+                throw new IllegalStateException("appium.url invalida: " + Config.get("appium.url"), e);
+            } catch (SessionNotCreatedException e) {
+                // Falla transitoria de adb (forward de puertos, servidor UiAutomator2 que no responde)
+                if (intento >= intentos) {
+                    throw e;
+                }
+                System.err.println("[DRIVER] No se pudo crear la sesion (intento " + intento + " de " + intentos + "): "
+                        + e.getMessage().lines().findFirst().orElse(""));
+            }
         }
         // El WebView casi nunca queda "idle": sin este ajuste UiAutomator2 espera hasta 10 s antes de cada comando
         driver.setSetting(Setting.WAIT_FOR_IDLE_TIMEOUT, Config.entero("uiautomator.idle.ms"));

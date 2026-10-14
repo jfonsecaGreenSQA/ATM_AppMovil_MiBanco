@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -42,6 +43,8 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
     private static final By BOTON = By.className("android.widget.Button");
     private static final By MONTO = uiSelector("new UiSelector().textStartsWith(\"$\")");
     private static final Pattern DIAPOSITIVA = Pattern.compile("^splide\\d+-slide\\d+$");
+    /** content-desc de una tarjeta: "Préstamos $71.454.146,91 Cuota vencio 1 Jun" = antes del monto, monto, estado. */
+    private static final Pattern TARJETA_DESC = Pattern.compile("^(.*?)\\s*(\\$[\\d.]+(?:,\\d+)?)\\s*(.*)$");
     private static final String BANNER_PRE_APROBADO = "Tienes un crédito pre-aprobado";
     private static final String OCULTAR_MONTOS = "Ocultar montos";
     private static final int MAX_DESLIZAMIENTOS = 5;
@@ -220,11 +223,23 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
     /**
      * Tarjeta de credito o banner: textos en orden = titulo, [etiqueta], monto, [estado]. Vacio si la tarjeta esta
      * cortada en el borde de la pantalla y no trae textos (se lee completa en otra posicion de scroll).
+     * Se lee primero del content-desc del contenedor, que el WebView entrega completo aunque la tarjeta este cortada
+     * (observado el 14/10/2026: cortada abajo, los hijos traen titulo y monto pero no "Cuota vencio 1 Jun", y la
+     * lectura incompleta aparecia como una tarjeta de mas sin estado).
      */
     private static Optional<ProductoHome> tarjeta(ProductoHome.Seccion seccion, Element tarjeta) {
         List<String> textos = textos(descendientes(tarjeta));
         if (textos.isEmpty()) {
             return Optional.empty();
+        }
+        Matcher desc = TARJETA_DESC.matcher(tarjeta.getAttribute("content-desc").replaceAll("\\s+", " ").trim());
+        if (desc.matches()) {
+            String antesDelMonto = desc.group(1).trim();
+            // El titulo es el primer texto de la tarjeta, si no quedo cortado por arriba (entonces el primero es el monto)
+            String titulo = antesDelMonto.startsWith(textos.get(0)) && !textos.get(0).startsWith("$")
+                    ? textos.get(0) : antesDelMonto;
+            return Optional.of(new ProductoHome(seccion, titulo, antesDelMonto.substring(titulo.length()).trim(),
+                    desc.group(2), desc.group(3).trim(), true, false));
         }
         String titulo = textos.get(0);
         int iMonto = -1;

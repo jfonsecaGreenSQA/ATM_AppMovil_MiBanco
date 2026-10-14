@@ -46,6 +46,7 @@ Feature: Home de la App Mi Banco
   # 38702 (pre-aprobado) y 38709 (saldos). El producto viene del caso o de la columna TipoProducto del control y el
   # monto esperado de la columna Monto. Con AUTO se busca en el listado un cliente que muestre el producto.
   # Los textos validados son los observados en la app (control de cambios en Consolidacion_Casos_de_Prueba.docx).
+  # En 38709 solo se validan el formato y el valor del saldo: la informacion de cada tarjeta es de 38705 a 38708.
   @productos @38705 @38706 @38707 @38708 @38702 @38709 @HappyPath
   Scenario: Producto del cliente en el Home
     Given que un cliente registrado con el producto del archivo de control inició sesión en la app

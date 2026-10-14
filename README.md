@@ -14,7 +14,7 @@ Toda la operación (ambiente, ejecución y reportes) se hace desde el menú `ATM
 | Recuperación de clave | 38529 · 38526 | **Construido** (un escenario, ambos tags). En la app la clave nueva se pide antes del OTP; el evento del OTP no se ve en la UI |
 | Home: encabezado | 38699 (saludo y pregunta) · 38700 (+ último ingreso) | **Automatizado**, un escenario por caso. El nombre del saludo no se valida |
 | Home: accesos directos | 38703 (Bre-B) · 38704 (Pedir Crédito) · 38711 (menú inferior) | **Automatizado**. Identidad visual y estado activo de Inicio: manual |
-| Home: productos del cliente | 38705 (ahorro) · 38707 (préstamos / libre inversión) · 38708 (rotativo) · 38702 (pre-aprobado) · 38706 (corriente) · 38709 (saldos) | **Automatizado** (un escenario, seis tags). 38705, 38707, 38708 y 38702 ejecutados con éxito el 12/10. 38706 construido, sin datos: ningún cliente registrado tiene cuenta corriente. 38709 construido y verificado en los dos sentidos; falta el monto esperado del backend (columna `Monto`) |
+| Home: productos del cliente | 38705 (ahorro) · 38707 (préstamos / libre inversión) · 38708 (rotativo) · 38702 (pre-aprobado) · 38706 (corriente) · 38709 (saldos) | **Automatizado** (un escenario, seis tags). 38705, 38707, 38708 y 38702 ejecutados con éxito el 12/10. 38706 construido, sin datos: ningún cliente registrado tiene cuenta corriente. 38709 construido y verificado en los dos sentidos; solo valida el formato y el valor del saldo (la información de cada tarjeta es de 38705 a 38708); falta el monto esperado del backend (columna `Monto`) |
 | Home: skeleton de carga | 38698 | **Automatizado** el 12/10. Se observa leyendo la página por DevTools del WebView (ver Arquitectura) |
 | Home: banner "Exclusivo para ti" | 38710 | Pendiente |
 | Logs (38500, 38504, 38521) | — | Fuera de alcance por ahora |
@@ -59,7 +59,7 @@ Ejecute `ATM_MiBanco.bat` (doble clic) y use el menú:
 | Opción | Qué hace |
 |---|---|
 | 1. Abrir archivo de control | Abre `control/Control_Ejecucion.xlsx` para elegir qué se ejecuta |
-| 2. Inicializar ambiente (Emulador + Appium) | Inicia el emulador elegido, espera a que arranque, desactiva el autocompletado de claves, verifica la app e inicia Appium |
+| 2. Inicializar ambiente (Emulador + Appium) | Si ya hay un emulador abierto lo usa; si no, lista los emuladores de este equipo (si hay uno solo lo toma; Enter = el último usado, guardado en `config/emulador_actual.txt`) y lo inicia en frío. Espera a que arranque, desactiva autocompletado de claves y animaciones, verifica la app e inicia Appium |
 | 3. Inicializar solo Appium y reconocer dispositivo | Para un celular físico: lo detecta por USB, lo deja seleccionado, instala la app si falta e inicia Appium |
 | 4. Ejecutar pruebas | Compila desde cero (`mvn clean test-compile`) y ejecuta lo marcado en el archivo de control |
 | 5. Consultar reporte | Abre el reporte Allure de una ejecución anterior |
@@ -80,7 +80,7 @@ Cada fila de la hoja **Control** es una iteración. Las columnas se ubican por n
 | Ejecutar | `SI` para ejecutar; cualquier otro valor la omite |
 | TipoDocumento | `CC` o `CE`, el del caso |
 | NumDocumento | Número de 6 a 11 dígitos, o `AUTO` para tomar un cliente del listado |
-| Clave | Vacía = se genera una que cumple RN-R07 (4 dígitos, sin 3 iguales consecutivos) |
+| Clave | Con `NumDocumento` = `AUTO`: vacía (registro y recuperación generan una que cumple RN-R07, 4 dígitos sin 3 iguales consecutivos; login y Home usan la del listado). **Con un número de documento informado la clave es obligatoria**: la que se crea en el registro, la actual en login/Home/productos o la nueva en la recuperación; si falta, la fila queda NO EJECUTADA |
 | OTP | Vacío = OTP de certificación configurado (`otp.defecto`) |
 | TipoProducto | Solo casos de productos del Home: `AHORRO`, `CORRIENTE`, `PRESTAMO`, `ROTATIVO`, `PRE_APROBADO`. Vacío = el producto del caso; obligatorio en 38709 |
 | Monto | Solo casos de productos del Home: saldo esperado según el backend (p. ej. `22746864.51`). Vacío = solo se valida el formato del monto en la app (`$22.746.864,51`); obligatorio en 38709 |

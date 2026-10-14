@@ -11,13 +11,16 @@ if not defined ANDROID_HOME set "ANDROID_HOME=%ANDROID_SDK%"
 if not defined JAVA_HOME if exist "%ProgramFiles%\Java\jdk-17" set "JAVA_HOME=%ProgramFiles%\Java\jdk-17"
 set "ADB=%ANDROID_SDK%\platform-tools\adb.exe"
 set "EMULATOR=%ANDROID_SDK%\emulator\emulator.exe"
-set "AVD_DEFECTO=Pixel_8_API_34"
+rem Ultimo emulador usado en este equipo (cada maquina tiene los suyos; no se versiona)
+set "ARCHIVO_AVD=config\emulador_actual.txt"
 set "APPIUM_URL=http://127.0.0.1:4723"
 set "APP_PAQUETE=co.com.mibanco.app"
 set "CONTROL=control\Control_Ejecucion.xlsx"
 set "ARCHIVO_DISPOSITIVO=config\dispositivo_actual.txt"
 set "ALLURE_DIR=herramientas\allure-2.29.0"
 set "MAVEN_OPTS=-Xmx2g -Dfile.encoding=UTF-8"
+rem Si el PATH trae %MAVEN_HOME%\bin sin expandir, cmd no encuentra mvn: se agrega explicitamente
+where mvn >nul 2>&1 || if defined MAVEN_HOME if exist "%MAVEN_HOME%\bin\mvn.cmd" set "PATH=%MAVEN_HOME%\bin;%PATH%"
 
 rem Modo directo: ATM_MiBanco.bat <opcion> ejecuta esa opcion una vez y termina
 if not "%~1"=="" (
@@ -77,7 +80,8 @@ if defined SERIAL (
     call :elegir_avd
     if not defined AVD exit /b
     echo Iniciando emulador !AVD! ...
-    start "Emulador Android" "%EMULATOR%" -avd !AVD!
+    rem Arranque en frio: un snapshot guardado tras una caida deja el emulador inestable
+    start "Emulador Android" "%EMULATOR%" -avd !AVD! -no-snapshot-load -no-boot-anim -no-audio
     call :esperar_emulador
     if not defined SERIAL (
         echo El emulador no aparecio a tiempo. Revise la ventana del emulador.
@@ -88,6 +92,11 @@ if defined SERIAL (
 call :esperar_arranque !SERIAL!
 rem En el emulador de pruebas se desactiva Autofill para evitar el dialogo "Guardar clave"
 "%ADB%" -s !SERIAL! shell settings put secure autofill_service null >nul 2>&1
+rem Sin animaciones y pantalla siempre encendida: menos carga y la app no queda detras del bloqueo
+"%ADB%" -s !SERIAL! shell settings put global window_animation_scale 0 >nul 2>&1
+"%ADB%" -s !SERIAL! shell settings put global transition_animation_scale 0 >nul 2>&1
+"%ADB%" -s !SERIAL! shell settings put global animator_duration_scale 0 >nul 2>&1
+"%ADB%" -s !SERIAL! shell svc power stayon true >nul 2>&1
 call :guardar_dispositivo !SERIAL!
 call :verificar_app !SERIAL!
 call :iniciar_appium
@@ -96,15 +105,23 @@ exit /b
 
 :elegir_avd
 set "AVD="
+set "AVD_ULTIMO="
+set "AVD_DEFECTO="
+if exist "%ARCHIVO_AVD%" set /p AVD_ULTIMO=<"%ARCHIVO_AVD%"
 set /a N=0
 echo.
-echo Emuladores disponibles:
+echo Emuladores disponibles en este equipo:
 for /f "usebackq delims=" %%a in (`"%EMULATOR%" -list-avds`) do (
     rem Solo nombres de AVD, descarta lineas INFO/WARNING del emulador
     echo %%a| findstr /r /c:"^[A-Za-z0-9_.-]*$" >nul && (
         set /a N+=1
         set "AVD_!N!=%%a"
-        if "%%a"=="%AVD_DEFECTO%" (echo   !N!. %%a  [por defecto]) else (echo   !N!. %%a)
+        if "%%a"=="!AVD_ULTIMO!" (
+            set "AVD_DEFECTO=%%a"
+            echo   !N!. %%a  [ultimo usado]
+        ) else (
+            echo   !N!. %%a
+        )
     )
 )
 if !N!==0 (
@@ -112,10 +129,25 @@ if !N!==0 (
     pause
     exit /b
 )
+if !N!==1 (
+    set "AVD=!AVD_1!"
+    echo Unico emulador: !AVD!
+    goto elegir_avd_fin
+)
 set "SEL="
-set /p "SEL=Numero del emulador (Enter = %AVD_DEFECTO%): "
-if "!SEL!"=="" (set "AVD=%AVD_DEFECTO%") else (set "AVD=!AVD_%SEL%!")
-if not defined AVD echo Opcion no valida.
+if defined AVD_DEFECTO (
+    set /p "SEL=Numero del emulador (Enter = !AVD_DEFECTO!): "
+    if "!SEL!"=="" set "AVD=!AVD_DEFECTO!"
+) else (
+    set /p "SEL=Numero del emulador: "
+)
+if not defined AVD if defined SEL set "AVD=!AVD_%SEL%!"
+if not defined AVD (
+    echo Opcion no valida.
+    exit /b
+)
+:elegir_avd_fin
+(echo !AVD!)>"%ARCHIVO_AVD%"
 exit /b
 
 :emulador_activo
@@ -259,7 +291,14 @@ if not "!APPIUM_OK!"=="1" (
     pause
     exit /b
 )
+call :memoria_libre
 echo.
+if !MEM_LIBRE_MB! lss 2048 (
+    echo *** ATENCION: el equipo solo tiene !MEM_LIBRE_MB! MB de RAM libre. ***
+    echo Con menos de 2 GB libres adb pierde la conexion con el emulador y las pruebas fallan al azar.
+    echo Cierre navegadores, Teams, editores y demas programas pesados antes de continuar.
+    echo.
+)
 echo Recuerde: guarde y cierre el archivo de control y el listado de clientes antes de continuar.
 pause
 echo Ejecutando pruebas en !DISPOSITIVO! ...
@@ -372,4 +411,9 @@ exit /b
 
 :guardar_dispositivo
 (echo %1)>"%ARCHIVO_DISPOSITIVO%"
+exit /b
+
+:memoria_libre
+set "MEM_LIBRE_MB=99999"
+for /f %%m in ('powershell -NoProfile -Command "[int]((Get-CimInstance Win32_OperatingSystem).FreePhysicalMemory/1024)" 2^>nul') do set "MEM_LIBRE_MB=%%m"
 exit /b

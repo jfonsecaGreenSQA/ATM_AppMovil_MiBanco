@@ -10,6 +10,7 @@ herramientas/
 target/
 # Seleccion local del menu
 config/dispositivo_actual.txt
+config/emulador_actual.txt
 # Binario confidencial de la app
 *.apk
 # Temporales de Excel
