@@ -6,6 +6,7 @@ import com.greensqa.mibanco.atm.screens.ObservacionCarga;
 import com.greensqa.mibanco.atm.screens.ProductoHome;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.Rectangle;
 import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebElement;
@@ -47,11 +48,17 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
     /** Banner de cada campana: "Ver campaña (se abre en una nueva pestaña): Promo 2" (observado el 15/10/2026). */
     private static final String VER_CAMPANA = "Ver campaña";
     private static final By BANNER_CAMPANA = uiSelector("new UiSelector().descriptionStartsWith(\"" + VER_CAMPANA + "\")");
-    /** Puntos de paginacion del carrusel de campanas; el de la campana visible esta seleccionado. */
-    private static final Pattern PAGINA_CAMPANA = Pattern.compile("^Go to slide (\\d+)$");
+    /** Puntos de paginacion de un carrusel (cuentas o campanas); el de la diapositiva visible esta seleccionado. */
+    private static final Pattern PAGINA_CARRUSEL = Pattern.compile("^Go to slide (\\d+)$");
     private static final String BANNER_PRE_APROBADO = "Tienes un crédito pre-aprobado";
     private static final String OCULTAR_MONTOS = "Ocultar montos";
     private static final int MAX_DESLIZAMIENTOS = 5;
+    /** Pasos de un tercio de pantalla para recorrer el Home completo (varias cuentas, creditos y campanas). */
+    private static final int MAX_PASOS_PRODUCTOS = 20;
+    /** Tarjeta de una cuenta en el carrusel "Tus cuentas" (su titulo: "Cuentas de ahorro **** 4066"). */
+    private static final By TARJETA_CUENTA = uiSelector("new UiSelector().descriptionStartsWith(\"Cuenta\").clickable(true)");
+    /** Contenedor de un carrusel (splideNN); el de cuentas y el de campanas cambian de numero segun el orden de carga. */
+    private static final Pattern CARRUSEL = Pattern.compile("^splide\\d+$");
 
     @Override
     public boolean estaVisible(Duration espera) {
@@ -122,9 +129,22 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
     @Override
     public List<ProductoHome> productos() {
         esperarProductosCargados();
-        Set<ProductoHome> productos = new LinkedHashSet<>();
+        String inicial = driver().getPageSource();
+        Set<ProductoHome> productos = new LinkedHashSet<>(leerProductos(inicial));
+        // El carrusel "Tus cuentas" solo expone la diapositiva en pantalla (observado el 19/10/2026: 3 diapositivas, la
+        // segunda cuenta en la tercera): se recorre por sus puntos de paginacion y se vuelve a la primera
+        int diapositivas = puntosDeCuentas(inicial).size();
+        for (int i = 2; i <= diapositivas; i++) {
+            if (irADiapositivaDeCuentas(i)) {
+                productos.addAll(leerProductos(driver().getPageSource()));
+            }
+        }
+        if (diapositivas > 1) {
+            irADiapositivaDeCuentas(1);
+        }
         String anterior = "";
-        for (int i = 0; i <= MAX_DESLIZAMIENTOS; i++) {
+        esperarPantallaQuieta();
+        for (int i = 0; i <= MAX_PASOS_PRODUCTOS; i++) {
             String fuente = driver().getPageSource();
             if (fuente.equals(anterior)) {
                 break;
@@ -175,8 +195,13 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
         visibleEn(MONTO, espera());
     }
 
+    /**
+     * Avanza un tercio de pantalla sin inercia y espera a que quede quieta: con un deslizamiento rapido se saltaban
+     * tarjetas (observado el 19/10/2026: un cliente con 10 productos se leia con 7).
+     */
     private void deslizarHaciaAbajo() {
-        deslizar("up", 0.7);
+        avanzarDespacio(0.33);
+        esperarPantallaQuieta();
     }
 
     /**
@@ -227,7 +252,7 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
             if (campana.isEmpty() && desc.startsWith(VER_CAMPANA)) {
                 campana = desc.substring(desc.lastIndexOf(':') + 1).trim();
             }
-            Matcher pagina = PAGINA_CAMPANA.matcher(desc);
+            Matcher pagina = PAGINA_CARRUSEL.matcher(desc);
             if (pagina.matches()) {
                 total++;
                 if ("true".equals(e.getAttribute("selected"))) {
@@ -241,8 +266,76 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
     /** Vuelve al inicio del Home (la lectura de productos lo deja al final) y toca la tarjeta con ese titulo exacto. */
     @Override
     public void abrirCuenta(String titulo) {
+        By cuenta = uiSelector("new UiSelector().description(\"" + titulo + "\").clickable(true)");
         deslizarAlInicio(MAX_DESLIZAMIENTOS + 1);
-        tocar(uiSelector("new UiSelector().description(\"" + titulo + "\").clickable(true)"));
+        esperarPantallaQuieta();
+        // Al volver de un detalle el Home se recarga ("Cargando..."): el carrusel aparece cuando terminan los productos
+        esperarProductosCargados();
+        visibleEn(TARJETA_CUENTA, espera());
+        int diapositivas = puntosDeCuentas(driver().getPageSource()).size();
+        for (int i = 1; i <= diapositivas && !titulo.equals(cuentaVisible()); i++) {
+            irADiapositivaDeCuentas(i);
+        }
+        if (!titulo.equals(cuentaVisible())) {
+            throw new NoSuchElementException("No se encontro la cuenta '" + titulo + "' en el carrusel; en pantalla: '"
+                    + cuentaVisible() + "'");
+        }
+        tocar(cuenta);
+    }
+
+    /**
+     * Va a la diapositiva {@code numero} del carrusel "Tus cuentas" tocando su punto de paginacion y espera a que quede
+     * seleccionado. Se usan los puntos y no un deslizamiento: un deslizamiento rapido salta diapositivas.
+     *
+     * @return true si la diapositiva quedo seleccionada
+     */
+    private boolean irADiapositivaDeCuentas(int numero) {
+        List<Element> puntos = puntosDeCuentas(driver().getPageSource());
+        if (numero > puntos.size()) {
+            return false;
+        }
+        int[] centro = centro(puntos.get(numero - 1).getAttribute("bounds"));
+        driver().executeScript("mobile: clickGesture", Map.of("x", centro[0], "y", centro[1]));
+        try {
+            new WebDriverWait(driver(), Duration.ofSeconds(5)).until(d -> {
+                List<Element> p = puntosDeCuentas(d.getPageSource());
+                return p.size() >= numero && "true".equals(p.get(numero - 1).getAttribute("selected"));
+            });
+            esperarPantallaQuieta();
+            return true;
+        } catch (TimeoutException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Puntos de paginacion ("Go to slide N") del carrusel que contiene las cuentas, en orden; vacio si no esta en
+     * pantalla o tiene una sola diapositiva. El banner de campanas tiene sus propios puntos: se toman solo los del
+     * carrusel de cuentas.
+     */
+    private static List<Element> puntosDeCuentas(String fuente) {
+        for (Element e : descendientes(documento(fuente).getDocumentElement())) {
+            if (!CARRUSEL.matcher(e.getAttribute("resource-id")).matches()) {
+                continue;
+            }
+            List<Element> contenido = descendientes(e);
+            if (contenido.stream().anyMatch(c -> c.getAttribute("content-desc").startsWith("Cuenta"))) {
+                return contenido.stream().filter(c -> PAGINA_CARRUSEL.matcher(c.getAttribute("content-desc")).matches()).toList();
+            }
+        }
+        return List.of();
+    }
+
+    /** Centro de unos bounds "[x1,y1][x2,y2]". */
+    private static int[] centro(String bounds) {
+        String[] n = bounds.replaceAll("[\\[\\]]", ",").replaceAll(",+", ",").replaceAll("^,|,$", "").split(",");
+        return new int[]{(Integer.parseInt(n[0]) + Integer.parseInt(n[2])) / 2, (Integer.parseInt(n[1]) + Integer.parseInt(n[3])) / 2};
+    }
+
+    /** Titulo de la cuenta en pantalla en el carrusel; vacio si no hay. */
+    private String cuentaVisible() {
+        List<WebElement> tarjeta = driver().findElements(TARJETA_CUENTA);
+        return tarjeta.isEmpty() ? "" : tarjeta.get(0).getAttribute("content-desc").trim();
     }
 
     private static List<ProductoHome> leerProductos(String fuente) {

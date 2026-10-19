@@ -194,11 +194,11 @@ abstract class PantallaAndroid {
      */
     protected void avanzarDespacio(double fraccion) {
         Dimension pantalla = driver().manage().window().getSize();
-        int inicio = (int) (pantalla.height * 0.75);
-        driver().executeScript("mobile: dragGesture", Map.of(
-                "startX", pantalla.width / 2, "startY", inicio,
-                "endX", pantalla.width / 2, "endY", inicio - (int) (pantalla.height * fraccion),
-                "speed", 1200));
+        // Deslizamiento lento (no dragGesture: en el Home no desplaza la pagina, observado el 19/10/2026)
+        driver().executeScript("mobile: swipeGesture", Map.of(
+                "left", pantalla.width / 4, "top", (int) (pantalla.height * 0.30),
+                "width", pantalla.width / 2, "height", (int) (pantalla.height * 0.45),
+                "direction", "up", "percent", Math.min(1.0, fraccion / 0.45), "speed", 900));
     }
 
     /** Vuelve al inicio de la pagina deslizando hacia arriba hasta que el arbol de UI no cambie. */
