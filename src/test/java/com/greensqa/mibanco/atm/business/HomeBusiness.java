@@ -71,6 +71,15 @@ public class HomeBusiness {
         return login.homeVisible() && home.ultimoIngreso().isPresent();
     }
 
+    /** Banner de campanas "Exclusivo para ti" (38710). */
+    public HomeScreen.Campanas campanas() {
+        return home.campanas();
+    }
+
+    public HomeScreen.Campanas siguienteCampana() {
+        return home.siguienteCampana();
+    }
+
     /** Se muestra el saludo "Hola, ..." con un nombre. */
     public boolean saludoVisible() {
         return SALUDO.matcher(home.saludo()).matches();

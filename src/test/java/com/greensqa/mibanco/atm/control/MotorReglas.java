@@ -49,10 +49,15 @@ public class MotorReglas {
                 switch (c) {
                     case REGISTRO_EXITOSO_CC, REGISTRO_EXITOSO_CE, SMS_REGISTRO_EXITOSO_CC, SMS_REGISTRO_EXITOSO_CE -> reglasRegistroExitoso(fila, it, errores);
                     case LOGIN_EXITOSO_CC, LOGIN_EXITOSO_CE, HOME_SALUDO, HOME_ULTIMO_INGRESO, HOME_ACCESO_BREB, HOME_ACCESO_CREDITO,
-                            HOME_MENU_INFERIOR, HOME_SKELETON -> reglasLogin(fila, it, errores);
+                            HOME_MENU_INFERIOR, HOME_SKELETON, HOME_BANNER -> reglasLogin(fila, it, errores);
                     case RECUPERACION_CLAVE, RECUPERACION_CLAVE_OTP -> reglasRecuperacionClave(fila, it, errores);
                     case HOME_PRODUCTO_AHORRO, HOME_PRODUCTO_CORRIENTE, HOME_PRODUCTO_PRESTAMO, HOME_PRODUCTO_ROTATIVO,
-                            HOME_PRODUCTO_PRE_APROBADO, HOME_SALDOS -> reglasProducto(fila, it, errores);
+                            HOME_PRODUCTO_PRE_APROBADO, HOME_SALDOS, CUENTAS_PRODUCTO_AHORRO, CUENTAS_PRODUCTO_CORRIENTE,
+                            CUENTAS_PRODUCTO_PRESTAMO, CUENTAS_PRODUCTO_ROTATIVO, CUENTAS_SALDOS -> reglasProducto(fila, it, errores);
+                    case CUENTAS_DETALLE, CUENTAS_DETALLE_TRANSACCION, CUENTAS_DESCARGAR_COMPROBANTE, CUENTAS_COMPARTIR_COMPROBANTE,
+                            CUENTAS_MOVIMIENTOS_MAXIMO_20, CUENTAS_MOVIMIENTOS_SIN_VER_MAS, CUENTAS_MOVIMIENTOS_SIN_PAGINACION,
+                            CUENTAS_MOVIMIENTOS_ULTIMO_MES ->
+                            reglasDetalleCuenta(fila, it, errores);
                 }
                 if (!c.deProductos() && !(fila.tipoProducto().isBlank() && fila.monto().isBlank())) {
                     errores.add("TipoProducto y Monto solo aplican a los casos de productos del Home; deje vacias las columnas");
@@ -102,6 +107,15 @@ public class MotorReglas {
         }
 
         reglasOtp(fila, it, errores);
+    }
+
+    /**
+     * Detalle de cuenta: ingresa como en el login con un cliente que muestre la cuenta de ahorros (con AUTO se busca en
+     * el listado como en los productos del Home). TipoProducto y Monto no aplican.
+     */
+    private void reglasDetalleCuenta(FilaControl fila, Iteracion it, List<String> errores) {
+        reglasLogin(fila, it, errores);
+        it.datosProducto(TipoProducto.AHORRO, null);
     }
 
     /** OTP vacio = OTP de certificacion configurado (otp.defecto). */
@@ -156,7 +170,7 @@ public class MotorReglas {
         Optional<BigDecimal> monto = Montos.desdeControl(fila.monto());
         if (!fila.monto().isBlank() && monto.isEmpty()) {
             errores.add("Monto invalido: " + fila.monto() + " (numero, p. ej. 22746864.51)");
-        } else if (caso == CasoPrueba.HOME_SALDOS && monto.isEmpty()) {
+        } else if (caso.validaSaldos() && monto.isEmpty()) {
             errores.add("Monto es obligatorio en " + caso.idAzure() + ": saldo esperado del producto segun el backend");
         }
         producto.ifPresent(p -> it.datosProducto(p, monto.orElse(null)));

@@ -5,10 +5,13 @@ import com.greensqa.mibanco.atm.screens.android.BandejaSmsAndroid;
 import com.greensqa.mibanco.atm.screens.android.BienvenidaAndroid;
 import com.greensqa.mibanco.atm.screens.android.ClaveCambiadaAndroid;
 import com.greensqa.mibanco.atm.screens.android.CrearClaveAndroid;
+import com.greensqa.mibanco.atm.screens.android.DetalleCuentaAndroid;
+import com.greensqa.mibanco.atm.screens.android.DetalleTransaccionAndroid;
 import com.greensqa.mibanco.atm.screens.android.DialogosSistemaAndroid;
 import com.greensqa.mibanco.atm.screens.android.HomeAndroid;
 import com.greensqa.mibanco.atm.screens.android.IndisponibilidadAndroid;
 import com.greensqa.mibanco.atm.screens.android.LoginAndroid;
+import com.greensqa.mibanco.atm.screens.android.MenuCompartirAndroid;
 import com.greensqa.mibanco.atm.screens.android.MenuMasAndroid;
 import com.greensqa.mibanco.atm.screens.android.OtpAndroid;
 import com.greensqa.mibanco.atm.screens.android.RecuperarClaveAndroid;
@@ -57,6 +60,18 @@ public final class Pantallas {
 
     public static HomeScreen home() {
         return android(HomeAndroid::new);
+    }
+
+    public static DetalleCuentaScreen detalleCuenta() {
+        return android(DetalleCuentaAndroid::new);
+    }
+
+    public static DetalleTransaccionScreen detalleTransaccion() {
+        return android(DetalleTransaccionAndroid::new);
+    }
+
+    public static MenuCompartirScreen menuCompartir() {
+        return android(MenuCompartirAndroid::new);
     }
 
     public static MenuMasScreen menuMas() {

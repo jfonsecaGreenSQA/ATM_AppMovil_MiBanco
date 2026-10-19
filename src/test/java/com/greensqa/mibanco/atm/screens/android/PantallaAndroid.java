@@ -14,8 +14,16 @@ import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.RemoteWebElement;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.StringReader;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -120,7 +128,7 @@ abstract class PantallaAndroid {
         if (!driver().isKeyboardShown()) {
             return;
         }
-        java.util.List<WebElement> zona = driver().findElements(textoSinAccion);
+        List<WebElement> zona = driver().findElements(textoSinAccion);
         if (zona.isEmpty()) {
             ocultarTeclado();
         } else {
@@ -150,5 +158,117 @@ abstract class PantallaAndroid {
         Rectangle r = asegurarEnPantalla(by).getRect();
         int desplazamiento = r.height / 4;
         driver().executeScript("mobile: clickGesture", Map.of("x", r.x + desplazamiento, "y", r.y + desplazamiento));
+    }
+
+    /** Desliza el contenido: "up" avanza hacia abajo en la pagina y "down" vuelve hacia arriba. */
+    protected void deslizar(String direccion, double porcentaje) {
+        Dimension pantalla = driver().manage().window().getSize();
+        driver().executeScript("mobile: swipeGesture", Map.of(
+                "left", pantalla.width / 4, "top", pantalla.height / 3,
+                "width", pantalla.width / 2, "height", pantalla.height / 3,
+                "direction", direccion, "percent", porcentaje));
+    }
+
+    /**
+     * Espera a que la pantalla deje de moverse: tras un deslizamiento el WebView sigue desplazandose por inercia y un
+     * toque con la posicion leida antes cae sobre otro elemento (observado el 19/10/2026 en la lista de movimientos).
+     */
+    protected void esperarPantallaQuieta() {
+        String[] anterior = {""};
+        try {
+            new org.openqa.selenium.support.ui.FluentWait<>(driver()).withTimeout(Duration.ofSeconds(5))
+                    .pollingEvery(Duration.ofMillis(400)).until(d -> {
+                        String fuente = d.getPageSource();
+                        boolean quieta = fuente.equals(anterior[0]);
+                        anterior[0] = fuente;
+                        return quieta;
+                    });
+        } catch (TimeoutException e) {
+            // La pantalla sigue cambiando (p. ej. una animacion): se continua con lo que muestra
+        }
+    }
+
+    /**
+     * Avanza la pagina arrastrando despacio una fraccion de la pantalla: sin la inercia de un deslizamiento rapido, que
+     * en listas largas salta elementos que el WebView solo expone mientras estan en pantalla (observado el 19/10/2026).
+     */
+    protected void avanzarDespacio(double fraccion) {
+        Dimension pantalla = driver().manage().window().getSize();
+        int inicio = (int) (pantalla.height * 0.75);
+        driver().executeScript("mobile: dragGesture", Map.of(
+                "startX", pantalla.width / 2, "startY", inicio,
+                "endX", pantalla.width / 2, "endY", inicio - (int) (pantalla.height * fraccion),
+                "speed", 1200));
+    }
+
+    /** Vuelve al inicio de la pagina deslizando hacia arriba hasta que el arbol de UI no cambie. */
+    protected void deslizarAlInicio(int maximo) {
+        String anterior = "";
+        for (int i = 0; i < maximo; i++) {
+            String fuente = driver().getPageSource();
+            if (fuente.equals(anterior)) {
+                return;
+            }
+            anterior = fuente;
+            deslizar("down", 0.8);
+        }
+    }
+
+    protected static List<String> textos(List<Element> elementos) {
+        return elementos.stream().map(d -> d.getAttribute("text").trim()).filter(t -> !t.isEmpty()).toList();
+    }
+
+    protected static List<Element> descendientes(Element e) {
+        List<Element> r = new ArrayList<>();
+        for (Element hijo : hijos(e)) {
+            r.add(hijo);
+            r.addAll(descendientes(hijo));
+        }
+        return r;
+    }
+
+    protected static List<Element> hijos(Element e) {
+        List<Element> r = new ArrayList<>();
+        NodeList nodos = e.getChildNodes();
+        for (int i = 0; i < nodos.getLength(); i++) {
+            if (nodos.item(i) instanceof Element hijo) {
+                r.add(hijo);
+            }
+        }
+        return r;
+    }
+
+    protected static Document documento(String xml) {
+        try {
+            DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
+            f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+            return f.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
+        } catch (Exception e) {
+            throw new IllegalStateException("No se pudo leer el arbol de UI del Home", e);
+        }
+    }
+
+    /** Textos del elemento con ese resource-id (widget de Modyo) en el orden del arbol de UI; vacio si no esta. */
+    protected static List<String> textosDelWidget(String fuente, String resourceId) {
+        return buscarPorId(documento(fuente).getDocumentElement(), resourceId).map(w -> textos(descendientes(w))).orElse(List.of());
+    }
+
+    protected static java.util.Optional<Element> buscarPorId(Element e, String resourceId) {
+        if (resourceId.equals(e.getAttribute("resource-id"))) {
+            return java.util.Optional.of(e);
+        }
+        for (Element hijo : hijos(e)) {
+            java.util.Optional<Element> w = buscarPorId(hijo, resourceId);
+            if (w.isPresent()) {
+                return w;
+            }
+        }
+        return java.util.Optional.empty();
+    }
+
+    /** Texto que aparece {@code saltos} posiciones despues de la etiqueta; vacio si no esta. */
+    protected static String despues(List<String> textos, String etiqueta, int saltos) {
+        int i = textos.indexOf(etiqueta);
+        return i < 0 || i + saltos >= textos.size() ? "" : textos.get(i + saltos);
     }
 }

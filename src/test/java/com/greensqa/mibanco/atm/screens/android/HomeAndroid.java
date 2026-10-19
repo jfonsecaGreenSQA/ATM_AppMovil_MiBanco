@@ -6,14 +6,12 @@ import com.greensqa.mibanco.atm.screens.ObservacionCarga;
 import com.greensqa.mibanco.atm.screens.ProductoHome;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Dimension;
+import org.openqa.selenium.Rectangle;
+import org.openqa.selenium.TimeoutException;
 import org.openqa.selenium.WebElement;
-import org.w3c.dom.Document;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.w3c.dom.Element;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
 
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.StringReader;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -45,6 +43,12 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
     private static final Pattern DIAPOSITIVA = Pattern.compile("^splide\\d+-slide\\d+$");
     /** content-desc de una tarjeta: "Préstamos $71.454.146,91 Cuota vencio 1 Jun" = antes del monto, monto, estado. */
     private static final Pattern TARJETA_DESC = Pattern.compile("^(.*?)\\s*(\\$[\\d.]+(?:,\\d+)?)\\s*(.*)$");
+    private static final By CAMPANAS_TITULO = rid("campaigns-heading");
+    /** Banner de cada campana: "Ver campaña (se abre en una nueva pestaña): Promo 2" (observado el 15/10/2026). */
+    private static final String VER_CAMPANA = "Ver campaña";
+    private static final By BANNER_CAMPANA = uiSelector("new UiSelector().descriptionStartsWith(\"" + VER_CAMPANA + "\")");
+    /** Puntos de paginacion del carrusel de campanas; el de la campana visible esta seleccionado. */
+    private static final Pattern PAGINA_CAMPANA = Pattern.compile("^Go to slide (\\d+)$");
     private static final String BANNER_PRE_APROBADO = "Tienes un crédito pre-aprobado";
     private static final String OCULTAR_MONTOS = "Ocultar montos";
     private static final int MAX_DESLIZAMIENTOS = 5;
@@ -172,11 +176,73 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
     }
 
     private void deslizarHaciaAbajo() {
+        deslizar("up", 0.7);
+    }
+
+    /**
+     * El carrusel de campanas usa ids splideNN-slideNN igual que el de cuentas y su numero depende del orden de carga:
+     * se lee a partir del titulo de la seccion.
+     */
+    @Override
+    public Campanas campanas() {
+        esperarProductosCargados();
         Dimension pantalla = driver().manage().window().getSize();
-        driver().executeScript("mobile: swipeGesture", Map.of(
-                "left", pantalla.width / 4, "top", pantalla.height / 3,
-                "width", pantalla.width / 2, "height", pantalla.height / 3,
-                "direction", "up", "percent", 0.7));
+        for (int i = 0; i <= MAX_DESLIZAMIENTOS; i++) {
+            List<WebElement> titulo = driver().findElements(CAMPANAS_TITULO);
+            if (!titulo.isEmpty() && titulo.get(0).getRect().y < pantalla.height / 2) {
+                break;
+            }
+            deslizar("up", 0.5);
+        }
+        return leerCampanas(driver().getPageSource());
+    }
+
+    @Override
+    public Campanas siguienteCampana() {
+        Campanas antes = leerCampanas(driver().getPageSource());
+        Rectangle banner = esperarVisible(BANNER_CAMPANA).getRect();
+        driver().executeScript("mobile: swipeGesture", Map.of("left", banner.x + banner.width / 8, "top", banner.y + banner.height / 4,
+                "width", banner.width * 3 / 4, "height", banner.height / 2, "direction", "left", "percent", 0.75));
+        try {
+            new WebDriverWait(driver(), Duration.ofSeconds(5)).until(d -> leerCampanas(d.getPageSource()).actual() != antes.actual());
+        } catch (TimeoutException e) {
+            // Sin otra campana el carrusel no cambia: se devuelve lo que muestra
+        }
+        return leerCampanas(driver().getPageSource());
+    }
+
+    private static Campanas leerCampanas(String fuente) {
+        String titulo = "";
+        String campana = "";
+        int total = 0;
+        int actual = 0;
+        for (Element e : descendientes(documento(fuente).getDocumentElement())) {
+            if (titulo.isEmpty()) {
+                if ("campaigns-heading".equals(e.getAttribute("resource-id"))) {
+                    titulo = e.getAttribute("text").trim();
+                }
+                continue;
+            }
+            String desc = e.getAttribute("content-desc");
+            if (campana.isEmpty() && desc.startsWith(VER_CAMPANA)) {
+                campana = desc.substring(desc.lastIndexOf(':') + 1).trim();
+            }
+            Matcher pagina = PAGINA_CAMPANA.matcher(desc);
+            if (pagina.matches()) {
+                total++;
+                if ("true".equals(e.getAttribute("selected"))) {
+                    actual = Integer.parseInt(pagina.group(1));
+                }
+            }
+        }
+        return new Campanas(titulo, campana, Math.max(total, 1), Math.max(actual, 1));
+    }
+
+    /** Vuelve al inicio del Home (la lectura de productos lo deja al final) y toca la tarjeta con ese titulo exacto. */
+    @Override
+    public void abrirCuenta(String titulo) {
+        deslizarAlInicio(MAX_DESLIZAMIENTOS + 1);
+        tocar(uiSelector("new UiSelector().description(\"" + titulo + "\").clickable(true)"));
     }
 
     private static List<ProductoHome> leerProductos(String fuente) {
@@ -253,40 +319,6 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
         String monto = iMonto < 0 ? "" : textos.get(iMonto);
         String estado = String.join(" ", textos.subList(iMonto < 0 ? 1 : iMonto + 1, textos.size())).replaceAll("\\s+", " ");
         return Optional.of(new ProductoHome(seccion, titulo, etiqueta, monto, estado.trim(), true, false));
-    }
-
-    private static List<String> textos(List<Element> elementos) {
-        return elementos.stream().map(d -> d.getAttribute("text").trim()).filter(t -> !t.isEmpty()).toList();
-    }
-
-    private static List<Element> descendientes(Element e) {
-        List<Element> r = new ArrayList<>();
-        for (Element hijo : hijos(e)) {
-            r.add(hijo);
-            r.addAll(descendientes(hijo));
-        }
-        return r;
-    }
-
-    private static List<Element> hijos(Element e) {
-        List<Element> r = new ArrayList<>();
-        NodeList nodos = e.getChildNodes();
-        for (int i = 0; i < nodos.getLength(); i++) {
-            if (nodos.item(i) instanceof Element hijo) {
-                r.add(hijo);
-            }
-        }
-        return r;
-    }
-
-    private static Document documento(String xml) {
-        try {
-            DocumentBuilderFactory f = DocumentBuilderFactory.newInstance();
-            f.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-            return f.newDocumentBuilder().parse(new InputSource(new StringReader(xml)));
-        } catch (Exception e) {
-            throw new IllegalStateException("No se pudo leer el arbol de UI del Home", e);
-        }
     }
 
     @Override

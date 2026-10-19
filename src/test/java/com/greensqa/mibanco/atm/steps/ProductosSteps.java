@@ -4,7 +4,6 @@ import com.greensqa.mibanco.atm.business.InicioAppBusiness;
 import com.greensqa.mibanco.atm.business.LoginBusiness;
 import com.greensqa.mibanco.atm.business.ProductosHomeBusiness;
 import com.greensqa.mibanco.atm.context.ContextoIteracion;
-import com.greensqa.mibanco.atm.control.CasoPrueba;
 import com.greensqa.mibanco.atm.control.Iteracion;
 import com.greensqa.mibanco.atm.data.Montos;
 import com.greensqa.mibanco.atm.data.TipoProducto;
@@ -51,11 +50,11 @@ public class ProductosSteps {
         TipoProducto tipo = iteracion.tipoProducto();
         List<ProductoHome> tarjetas = productos.productosDe(tipo);
         assertThat(tarjetas).as("El Home muestra %s", tipo.descripcion()).isNotEmpty();
-        boolean soloSaldo = iteracion.caso() == CasoPrueba.HOME_SALDOS;
+        boolean soloSaldo = iteracion.caso().validaSaldos();
         for (ProductoHome p : tarjetas) {
             Allure.step("Tarjeta: " + p.titulo() + (p.etiqueta().isEmpty() ? "" : " | " + p.etiqueta())
                     + (p.monto().isEmpty() ? "" : " | " + p.monto()) + (p.estado().isEmpty() ? "" : " | " + p.estado()));
-            // 38709 valida los saldos: la informacion de cada tarjeta (cuota, etiqueta, flecha, ojo) es de 38705 a 38708
+            // 38709 y 39565 validan los saldos: la informacion de cada tarjeta (cuota, etiqueta, flecha, ojo) es de 38705 a 38708
             if (soloSaldo) {
                 validarMonto(p, "Saldo del producto");
                 continue;

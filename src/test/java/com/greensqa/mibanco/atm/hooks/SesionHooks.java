@@ -2,6 +2,7 @@ package com.greensqa.mibanco.atm.hooks;
 
 import com.greensqa.mibanco.atm.business.LoginBusiness;
 import com.greensqa.mibanco.atm.business.ProductosHomeBusiness;
+import com.greensqa.mibanco.atm.config.Config;
 import com.greensqa.mibanco.atm.context.ContextoIteracion;
 import com.greensqa.mibanco.atm.control.Iteracion;
 import com.greensqa.mibanco.atm.driver.DriverManager;
@@ -16,12 +17,25 @@ import io.cucumber.java.Scenario;
  */
 public class SesionHooks {
 
-    @After(value = "@login or @home", order = 20000)
+    @After(value = "@login or @home or @cuentas", order = 20000)
     public void cerrarSesionAbierta(Scenario escenario) {
         if (!DriverManager.activo()) {
             return;
         }
         try {
+            // Desde el detalle de una transaccion o de la cuenta se vuelve al Home con la flecha de la app: Atras del
+            // sistema en el Home abre "¿Quieres cerrar sesion?"
+            if (Pantallas.menuCompartir().estaVisible()) {
+                Pantallas.menuCompartir().cancelar();
+            }
+            if (Pantallas.detalleTransaccion().estaVisible()) {
+                Pantallas.detalleTransaccion().volver();
+                Pantallas.detalleCuenta().estaVisible(Config.segundos("espera.segundos"));
+            }
+            if (Pantallas.detalleCuenta().estaVisible()) {
+                Pantallas.detalleCuenta().volver();
+                Pantallas.home().estaVisible(Config.segundos("espera.segundos"));
+            }
             if (Pantallas.home().estaVisible()) {
                 inventariarProductos(escenario);
                 boolean cerrada = new LoginBusiness().cerrarSesion();
@@ -34,11 +48,12 @@ public class SesionHooks {
 
     /**
      * Registra en el listado (PRODUCTOS_HOME) los productos que muestra el Home del cliente, para que los casos de
-     * productos elijan clientes que los tengan. Los escenarios de productos ya lo hicieron.
+     * productos elijan clientes que los tengan. Los escenarios de productos y de cuentas ya lo hicieron.
      */
     private void inventariarProductos(Scenario escenario) {
         Iteracion it = ContextoIteracion.actual();
-        if (escenario.getSourceTagNames().contains("@productos") || it.numDocumento() == null) {
+        if (escenario.getSourceTagNames().contains("@productos") || escenario.getSourceTagNames().contains("@cuentas")
+                || it.numDocumento() == null) {
             return;
         }
         try {

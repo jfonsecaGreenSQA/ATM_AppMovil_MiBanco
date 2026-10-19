@@ -5,6 +5,7 @@ import com.greensqa.mibanco.atm.business.InicioAppBusiness;
 import com.greensqa.mibanco.atm.business.LoginBusiness;
 import com.greensqa.mibanco.atm.context.ContextoIteracion;
 import com.greensqa.mibanco.atm.control.Iteracion;
+import com.greensqa.mibanco.atm.screens.HomeScreen;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
@@ -24,6 +25,7 @@ public class HomeSteps {
     private final HomeBusiness home = new HomeBusiness();
     private final Iteracion iteracion = ContextoIteracion.actual();
     private HomeBusiness.CargaHome carga;
+    private HomeScreen.Campanas campanas;
 
     @Given("que un cliente registrado inició sesión en la app")
     public void clienteInicioSesion() {
@@ -88,6 +90,29 @@ public class HomeSteps {
     @And("ve la pregunta {string}")
     public void veLaPregunta(String pregunta) {
         assertThat(home.preguntaActividad()).as("Pregunta de actividad del Home").isEqualTo(pregunta);
+    }
+
+    @Then("ve la sección {string} con el banner de campañas")
+    public void veSeccionDeCampanas(String titulo) {
+        campanas = home.campanas();
+        Allure.step("Campañas: " + campanas.total() + "; visible: " + campanas.campana() + " (" + campanas.actual() + " de "
+                + campanas.total() + ")");
+        assertThat(campanas.titulo()).as("Titulo de la seccion de campañas").isEqualTo(titulo);
+        assertThat(campanas.campana()).as("Banner de campaña visible debajo del titulo").isNotEmpty();
+    }
+
+    /** Si el cliente tiene una sola campaña no hay siguiente: queda como observacion y el paso no falla. */
+    @And("al deslizar el banner ve la siguiente campaña cuando hay más de una")
+    public void deslizaBannerDeCampanas() {
+        if (campanas.total() < 2 || campanas.actual() >= campanas.total()) {
+            Allure.step("Observacion: no hay una campaña siguiente (" + campanas.actual() + " de " + campanas.total() + ")");
+            return;
+        }
+        HomeScreen.Campanas siguiente = home.siguienteCampana();
+        Allure.step("Tras deslizar: " + siguiente.campana() + " (" + siguiente.actual() + " de " + siguiente.total() + ")");
+        assertThat(siguiente.actual()).as("Al deslizar pasa a la campaña %d de %d", campanas.actual() + 1, campanas.total())
+                .isEqualTo(campanas.actual() + 1);
+        assertThat(siguiente.campana()).as("Muestra otra campaña").isNotEqualTo(campanas.campana());
     }
 
     @And("ve la fecha y hora de su último ingreso")

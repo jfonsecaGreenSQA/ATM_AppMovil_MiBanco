@@ -42,12 +42,21 @@ Feature: Home de la App Mi Banco
     Given que un cliente registrado inició sesión en la app
     Then ve el menú inferior con los accesos "Inicio, Operaciones, QR, Para ti, Más" en ese orden
 
+  # Campañas: el carrusel se lee a partir del titulo de la seccion. Si el cliente tiene una sola campaña el segundo paso
+  # queda como observacion. La apertura de la campaña (se abre en una nueva pestaña) no la pide el caso.
+  @38710 @HappyPath
+  Scenario: Banner de campañas "Exclusivo para ti" en el Home
+    Given que un cliente registrado inició sesión en la app
+    Then ve la sección "Exclusivo para ti" con el banner de campañas
+    And al deslizar el banner ve la siguiente campaña cuando hay más de una
+
   # Productos del cliente: 38705 (ahorro), 38706 (corriente), 38707 (prestamos / libre inversion), 38708 (rotativo),
   # 38702 (pre-aprobado) y 38709 (saldos). El producto viene del caso o de la columna TipoProducto del control y el
   # monto esperado de la columna Monto. Con AUTO se busca en el listado un cliente que muestre el producto.
   # Los textos validados son los observados en la app (control de cambios en Consolidacion_Casos_de_Prueba.docx).
   # En 38709 solo se validan el formato y el valor del saldo: la informacion de cada tarjeta es de 38705 a 38708.
-  @productos @38705 @38706 @38707 @38708 @38702 @38709 @HappyPath
+  # Cuentas (7x24): 39561 a 39565 repiten el texto de 38705, 38706, 38707, 38708 y 38709 y se ejecutan igual.
+  @productos @38705 @38706 @38707 @38708 @38702 @38709 @39561 @39562 @39563 @39564 @39565 @HappyPath
   Scenario: Producto del cliente en el Home
     Given que un cliente registrado con el producto del archivo de control inició sesión en la app
     Then ve el producto en su sección del Home con su información y formato

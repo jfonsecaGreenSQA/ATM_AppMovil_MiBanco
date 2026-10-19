@@ -26,6 +26,7 @@ public enum CasoPrueba {
     HOME_ACCESO_CREDITO("38704", "Acceso Pedir Credito en la parte superior del Home", "Home", TipoDocumento.CC, false),
     HOME_MENU_INFERIOR("38711", "Menu inferior del Home", "Home", TipoDocumento.CC, false),
     HOME_SKELETON("38698", "Skeleton de carga del Home", "Home", TipoDocumento.CC, false),
+    HOME_BANNER("38710", "Banner Exclusivo para ti del Home", "Home", TipoDocumento.CC, false),
     // Productos del Home: un mismo escenario; el producto viene del caso o de la columna TipoProducto (38709)
     HOME_PRODUCTO_AHORRO("38705", "Producto cuenta de ahorro en el Home", "Home", TipoDocumento.CC, TipoProducto.AHORRO),
     HOME_PRODUCTO_CORRIENTE("38706", "Producto cuenta corriente en el Home", "Home", TipoDocumento.CC, TipoProducto.CORRIENTE),
@@ -33,7 +34,26 @@ public enum CasoPrueba {
             TipoProducto.PRESTAMO),
     HOME_PRODUCTO_ROTATIVO("38708", "Producto credito rotativo en el Home", "Home", TipoDocumento.CC, TipoProducto.ROTATIVO),
     HOME_PRODUCTO_PRE_APROBADO("38702", "Credito pre-aprobado en el Home", "Home", TipoDocumento.CC, TipoProducto.PRE_APROBADO),
-    HOME_SALDOS("38709", "Saldos de los productos en el Home", "Home", TipoDocumento.CC, null);
+    HOME_SALDOS("38709", "Saldos de los productos en el Home", "Home", TipoDocumento.CC, null),
+    // Cuentas (7x24): 39561 a 39565 repiten el texto de 38705 a 38709 y usan el mismo escenario
+    CUENTAS_PRODUCTO_AHORRO("39561", "Producto cuenta de ahorro en el Home (Cuentas)", "Cuentas", TipoDocumento.CC,
+            TipoProducto.AHORRO),
+    CUENTAS_PRODUCTO_CORRIENTE("39562", "Producto cuenta corriente en el Home (Cuentas)", "Cuentas", TipoDocumento.CC,
+            TipoProducto.CORRIENTE),
+    CUENTAS_PRODUCTO_PRESTAMO("39563", "Producto credito de libre inversion (Prestamos) en el Home (Cuentas)", "Cuentas",
+            TipoDocumento.CC, TipoProducto.PRESTAMO),
+    CUENTAS_PRODUCTO_ROTATIVO("39564", "Producto credito rotativo en el Home (Cuentas)", "Cuentas", TipoDocumento.CC,
+            TipoProducto.ROTATIVO),
+    CUENTAS_SALDOS("39565", "Saldos de los productos en el Home (Cuentas)", "Cuentas", TipoDocumento.CC, null),
+    CUENTAS_DETALLE("39566", "Detalle de cuenta de ahorros", "Cuentas", TipoDocumento.CC, false),
+    CUENTAS_DETALLE_TRANSACCION("39571", "Detalle de una transaccion de la cuenta", "Cuentas", TipoDocumento.CC, false),
+    CUENTAS_DESCARGAR_COMPROBANTE("39572", "Descargar comprobante de una transaccion", "Cuentas", TipoDocumento.CC, false),
+    CUENTAS_COMPARTIR_COMPROBANTE("39573", "Compartir comprobante de una transaccion", "Cuentas", TipoDocumento.CC, false),
+    // 39567 (principal), 39569 y 39570: un mismo escenario
+    CUENTAS_MOVIMIENTOS_MAXIMO_20("39567", "Detalle de cuenta muestra maximo 20 movimientos", "Cuentas", TipoDocumento.CC, false),
+    CUENTAS_MOVIMIENTOS_SIN_VER_MAS("39569", "Sin boton Ver mas ni carga adicional de movimientos", "Cuentas", TipoDocumento.CC, false),
+    CUENTAS_MOVIMIENTOS_SIN_PAGINACION("39570", "Sin paginacion ni scroll infinito de movimientos", "Cuentas", TipoDocumento.CC, false),
+    CUENTAS_MOVIMIENTOS_ULTIMO_MES("39568", "Detalle de cuenta muestra movimientos del ultimo mes", "Cuentas", TipoDocumento.CC, false);
 
     private final String idAzure;
     private final String nombre;
@@ -93,6 +113,11 @@ public enum CasoPrueba {
 
     public boolean deProductos() {
         return deProductos;
+    }
+
+    /** Caso de saldos (38709, 39565): compara el Monto del control y de cada tarjeta solo valida el formato del saldo. */
+    public boolean validaSaldos() {
+        return deProductos && producto == null;
     }
 
     public String tag() {

@@ -29,6 +29,8 @@ public final class Evidencias {
     private Evidencias() {
     }
 
+    private static boolean grabando;
+
     public static void reiniciarConsecutivo() {
         consecutivo = 0;
     }
@@ -70,6 +72,7 @@ public final class Evidencias {
     }
 
     public static void iniciarVideo() {
+        grabando = true;
         try {
             DriverManager.driver().startRecordingScreen(new AndroidStartScreenRecordingOptions()
                     .withTimeLimit(Duration.ofMinutes(3)));
@@ -78,10 +81,12 @@ public final class Evidencias {
         }
     }
 
+    /** Se puede llamar antes del final (p. ej. para no grabar datos personales del dispositivo); el cierre no repite. */
     public static void detenerVideo() {
-        if (!DriverManager.activo()) {
+        if (!DriverManager.activo() || !grabando) {
             return;
         }
+        grabando = false;
         try {
             String base64 = DriverManager.driver().stopRecordingScreen();
             if (base64 != null && !base64.isBlank()) {

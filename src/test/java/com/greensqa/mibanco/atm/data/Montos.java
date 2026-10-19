@@ -28,6 +28,20 @@ public final class Montos {
         return Optional.of(new BigDecimal(monto.trim().substring(1).replace(".", "").replace(',', '.')));
     }
 
+    /** Monto de un movimiento: el formato de la app con signo menos opcional ("-$921,00", observado el 19/10/2026). */
+    public static boolean formatoAppConSigno(String monto) {
+        return monto != null && formatoApp(monto.trim().startsWith("-") ? monto.trim().substring(1) : monto);
+    }
+
+    /** Valor de un monto de movimiento (negativo si lleva "-"); vacio si no cumple el formato. */
+    public static Optional<BigDecimal> desdeAppConSigno(String monto) {
+        if (!formatoAppConSigno(monto)) {
+            return Optional.empty();
+        }
+        String m = monto.trim();
+        return m.startsWith("-") ? desdeApp(m.substring(1)).map(BigDecimal::negate) : desdeApp(m);
+    }
+
     /**
      * Valor de la columna Monto. Acepta como lo escriba el usuario o lo entregue Excel: "22746864.51", "22746864,51",
      * "22.746.864,51", "$ 22,746,864.51" o un entero. Vacio si no es un numero.

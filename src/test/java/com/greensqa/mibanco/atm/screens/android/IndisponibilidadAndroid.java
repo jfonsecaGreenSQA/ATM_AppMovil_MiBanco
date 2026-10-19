@@ -15,6 +15,9 @@ public class IndisponibilidadAndroid extends PantallaAndroid implements Indispon
     private static final By TITULO = rid("mb-message-modal-title");
     private static final By DESCRIPCION = rid("mb-message-modal-desc");
     private static final By ENTIENDO = uiSelector("new UiSelector().className(\"android.widget.Button\").text(\"Entiendo\")");
+    /** Codigo HTTP 5xx con su descripcion, como lo muestra la pagina de error del servidor ("503 Service ..."). */
+    private static final By ERROR_SERVIDOR = uiSelector(
+            "new UiSelector().className(\"android.widget.TextView\").textMatches(\"^5[0-9][0-9] [A-Z].*\")");
     private static final String TITULO_INDISPONIBILIDAD = "Validación fallida";
     private static final String TEXTO_INDISPONIBILIDAD = "No es posible atender tu solicitud por este canal";
 
@@ -30,6 +33,16 @@ public class IndisponibilidadAndroid extends PantallaAndroid implements Indispon
             // Sin sesion o pantalla cambiando: no se puede afirmar indisponibilidad
         }
         return Optional.empty();
+    }
+
+    @Override
+    public Optional<String> errorDelServidor() {
+        try {
+            String texto = textoDe(ERROR_SERVIDOR);
+            return texto.isEmpty() ? Optional.empty() : Optional.of("Error del servidor: " + texto);
+        } catch (WebDriverException e) {
+            return Optional.empty();
+        }
     }
 
     @Override

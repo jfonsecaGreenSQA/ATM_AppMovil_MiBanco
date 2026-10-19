@@ -5,6 +5,7 @@ import com.greensqa.mibanco.atm.control.Iteracion;
 import com.greensqa.mibanco.atm.data.PoolClientes;
 import com.greensqa.mibanco.atm.driver.DriverManager;
 import com.greensqa.mibanco.atm.evidence.Evidencias;
+import com.greensqa.mibanco.atm.screens.IndisponibilidadScreen;
 import com.greensqa.mibanco.atm.screens.Pantallas;
 import io.cucumber.java.After;
 import io.cucumber.java.AfterStep;
@@ -16,7 +17,7 @@ import java.util.Optional;
 
 /**
  * Ciclo de vida de cada iteracion: sesion de Appium, video, evidencia por paso y logs.
- * Vigila en cada paso el aviso de indisponibilidad del sistema: las acciones que llaman al backend ya lo reintentan
+ * Vigila en cada paso el aviso de indisponibilidad del sistema (o la pagina de error 5xx del servidor): las acciones que llaman al backend ya lo reintentan
  * (business.ReintentoIndisponibilidad); si sigue en pantalla al terminar un paso, guarda evidencia y la iteracion
  * queda FALLIDA por indisponibilidad (los pasos siguientes no se ejecutan).
  */
@@ -70,7 +71,8 @@ public class Hooks {
         if (!DriverManager.activo()) {
             return Optional.empty();
         }
-        Optional<String> aviso = Pantallas.indisponibilidad().avisoVisible();
+        IndisponibilidadScreen indisponibilidad = Pantallas.indisponibilidad();
+        Optional<String> aviso = indisponibilidad.avisoVisible().or(indisponibilidad::errorDelServidor);
         aviso.ifPresent(texto -> {
             ContextoIteracion.indisponibilidad(texto);
             Evidencias.captura("Indisponibilidad del sistema");
