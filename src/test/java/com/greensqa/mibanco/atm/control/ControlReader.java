@@ -24,6 +24,8 @@ public final class ControlReader {
     static final List<String> COLUMNAS = List.of(
             "Caso", "IdPrueba", "Ejecutar", "TipoDocumento", "NumDocumento", "Clave", "OTP", "TipoProducto", "Monto",
             "Observaciones");
+    /** Columnas que pueden faltar en la hoja: se leen como vacias. */
+    private static final List<String> OPCIONALES = List.of("IdPrueba");
 
     private ControlReader() {
     }
@@ -63,15 +65,15 @@ public final class ControlReader {
             col.put(normalizar(c.getStringCellValue()), c.getColumnIndex());
         }
         for (String requerida : COLUMNAS) {
-            if (!col.containsKey(normalizar(requerida))) {
+            if (!col.containsKey(normalizar(requerida)) && !OPCIONALES.contains(requerida)) {
                 throw new IllegalStateException("Falta la columna '" + requerida + "' en la hoja Control");
             }
         }
         return col;
     }
 
-    private static String valor(Row row, int indice, DataFormatter fmt) {
-        Cell c = row.getCell(indice);
+    private static String valor(Row row, Integer indice, DataFormatter fmt) {
+        Cell c = indice == null ? null : row.getCell(indice);
         return c == null ? "" : fmt.formatCellValue(c).trim();
     }
 

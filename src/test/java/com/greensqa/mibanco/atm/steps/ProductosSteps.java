@@ -27,7 +27,8 @@ public class ProductosSteps {
 
     /** "Cuentas de ahorro **** 1234" (observado); acepta tambien la forma del caso "Cuenta ahorros **** 1234". */
     private static final String CUENTA_AHORRO = "(?i)^cuentas? (de )?ahorros? \\*{4} \\d{4}$";
-    private static final String CUENTA_CORRIENTE = "(?i)^cuentas? (de )?corriente \\*{4} \\d{4}$";
+    /** "Cuentas corrientes **** 0568" (observado 20/10); acepta tambien el singular. */
+    private static final String CUENTA_CORRIENTE = "(?i)^cuentas? (de )?corrientes? \\*{4} \\d{4}$";
     /** "Cuota vencio 1 Jun" (observado), "Cuota venció Hoy" o "Cuota vence 24 Oct" (caso). */
     private static final String ESTADO_CUOTA = "(?i)^cuota (vencio|venció|vence) \\S.*$";
     private static final String CUPO_APROBADO = "Cupo aprobado";

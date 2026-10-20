@@ -15,3 +15,5 @@ config/emulador_actual.txt
 *.apk
 # Temporales de Excel
 ~$*.xlsx
+# Resultados sueltos de Allure (cada ejecucion guarda los suyos en ejecuciones/)
+allure-results/

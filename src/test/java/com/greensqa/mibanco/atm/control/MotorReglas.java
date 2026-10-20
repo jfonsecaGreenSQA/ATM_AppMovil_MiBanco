@@ -8,14 +8,16 @@ import com.greensqa.mibanco.atm.data.TipoProducto;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
 /**
  * Decide que filas del control se ejecutan y resuelve sus datos.
- * Reglas generales: Ejecutar=SI, caso construido, IdPrueba obligatorio y unico.
+ * Reglas generales: Ejecutar=SI, caso construido, IdPrueba unico (si viene vacio se genera).
  * Reglas por caso: campos obligatorios y formato de cada dato.
  */
 public class MotorReglas {
@@ -27,8 +29,10 @@ public class MotorReglas {
     public List<Iteracion> evaluar(List<FilaControl> filas) {
         Set<String> ids = new HashSet<>();
         List<Iteracion> iteraciones = new ArrayList<>();
-        for (FilaControl fila : filas) {
-            Iteracion it = new Iteracion(fila);
+        List<String> idsPrueba = idsPrueba(filas);
+        for (int i = 0; i < filas.size(); i++) {
+            FilaControl fila = filas.get(i);
+            Iteracion it = new Iteracion(fila, idsPrueba.get(i));
             iteraciones.add(it);
             if (!"SI".equalsIgnoreCase(fila.ejecutar())) {
                 it.omitir("Ejecutar = " + (fila.ejecutar().isBlank() ? "(vacio)" : fila.ejecutar()));
@@ -39,10 +43,8 @@ public class MotorReglas {
             if (caso.isEmpty()) {
                 errores.add("Caso no reconocido o aun no construido: '" + fila.caso() + "'");
             }
-            if (fila.idPrueba().isBlank()) {
-                errores.add("IdPrueba es obligatorio");
-            } else if (!ids.add(fila.idPrueba().toUpperCase())) {
-                errores.add("IdPrueba duplicado: " + fila.idPrueba());
+            if (!ids.add(it.idPrueba().toUpperCase())) {
+                errores.add("IdPrueba duplicado: " + it.idPrueba());
             }
             caso.ifPresent(c -> {
                 it.identificarCaso(c);
@@ -70,6 +72,30 @@ public class MotorReglas {
             }
         }
         return iteraciones;
+    }
+
+    /**
+     * IdPrueba de cada fila: el escrito en el control o, si esta vacio, el prefijo del caso y su consecutivo entre las
+     * filas de ese caso (p. ej. REG-CC-001, CTA-MOV20-002). Un generado nunca repite uno escrito a mano.
+     */
+    static List<String> idsPrueba(List<FilaControl> filas) {
+        Set<String> escritos = new HashSet<>();
+        filas.stream().map(FilaControl::idPrueba).filter(s -> !s.isBlank()).forEach(s -> escritos.add(s.toUpperCase()));
+        Map<String, Integer> contador = new HashMap<>();
+        List<String> ids = new ArrayList<>();
+        for (FilaControl fila : filas) {
+            if (!fila.idPrueba().isBlank()) {
+                ids.add(fila.idPrueba());
+                continue;
+            }
+            String base = CasoPrueba.desdeTexto(fila.caso()).map(CasoPrueba::prefijoIdPrueba).orElse("FILA");
+            String id;
+            do {
+                id = String.format("%s-%03d", base, contador.merge(base, 1, Integer::sum));
+            } while (escritos.contains(id.toUpperCase()));
+            ids.add(id);
+        }
+        return ids;
     }
 
     private void reglasRegistroExitoso(FilaControl fila, Iteracion it, List<String> errores) {

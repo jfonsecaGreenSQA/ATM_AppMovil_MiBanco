@@ -130,6 +130,46 @@ public enum CasoPrueba {
     }
 
     /** Reconoce el caso por el Id de Azure al inicio del texto ("38498 - ..."). */
+    /** Prefijo del IdPrueba que se genera cuando el control no lo trae (p. ej. REG-CC-001). */
+    public String prefijoIdPrueba() {
+        return switch (this) {
+            case REGISTRO_EXITOSO_CC -> "REG-CC";
+            case REGISTRO_EXITOSO_CE -> "REG-CE";
+            case SMS_REGISTRO_EXITOSO_CC -> "SMS-CC";
+            case SMS_REGISTRO_EXITOSO_CE -> "SMS-CE";
+            case LOGIN_EXITOSO_CC -> "LOG-CC";
+            case LOGIN_EXITOSO_CE -> "LOG-CE";
+            case RECUPERACION_CLAVE -> "REC-CLAVE";
+            case RECUPERACION_CLAVE_OTP -> "REC-OTP";
+            case HOME_SALUDO -> "HOME-SALUDO";
+            case HOME_ULTIMO_INGRESO -> "HOME-INGRESO";
+            case HOME_ACCESO_BREB -> "HOME-BREB";
+            case HOME_ACCESO_CREDITO -> "HOME-CREDITO";
+            case HOME_MENU_INFERIOR -> "HOME-MENU";
+            case HOME_SKELETON -> "HOME-SKELETON";
+            case HOME_BANNER -> "HOME-BANNER";
+            case HOME_PRODUCTO_AHORRO -> "PROD-AHORRO";
+            case HOME_PRODUCTO_CORRIENTE -> "PROD-CORRIENTE";
+            case HOME_PRODUCTO_PRESTAMO -> "PROD-PRESTAMO";
+            case HOME_PRODUCTO_ROTATIVO -> "PROD-ROTATIVO";
+            case HOME_PRODUCTO_PRE_APROBADO -> "PROD-PREAPROBADO";
+            case HOME_SALDOS -> "PROD-SALDOS";
+            case CUENTAS_PRODUCTO_AHORRO -> "CTA-AHORRO";
+            case CUENTAS_PRODUCTO_CORRIENTE -> "CTA-CORRIENTE";
+            case CUENTAS_PRODUCTO_PRESTAMO -> "CTA-PRESTAMO";
+            case CUENTAS_PRODUCTO_ROTATIVO -> "CTA-ROTATIVO";
+            case CUENTAS_SALDOS -> "CTA-SALDOS";
+            case CUENTAS_DETALLE -> "CTA-DETALLE";
+            case CUENTAS_DETALLE_TRANSACCION -> "CTA-TRX";
+            case CUENTAS_DESCARGAR_COMPROBANTE -> "CTA-DESCARGA";
+            case CUENTAS_COMPARTIR_COMPROBANTE -> "CTA-COMPARTIR";
+            case CUENTAS_MOVIMIENTOS_MAXIMO_20 -> "CTA-MOV20";
+            case CUENTAS_MOVIMIENTOS_SIN_VER_MAS -> "CTA-VERMAS";
+            case CUENTAS_MOVIMIENTOS_SIN_PAGINACION -> "CTA-PAGINACION";
+            case CUENTAS_MOVIMIENTOS_ULTIMO_MES -> "CTA-MES";
+        };
+    }
+
     public static Optional<CasoPrueba> desdeTexto(String texto) {
         if (texto == null || texto.isBlank()) {
             return Optional.empty();

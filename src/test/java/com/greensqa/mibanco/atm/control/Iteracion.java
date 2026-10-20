@@ -20,6 +20,7 @@ public class Iteracion {
     public enum Estado { LISTA, OMITIDA, NO_EJECUTADA, EXITOSA, FALLIDA, PENDIENTE }
 
     private final FilaControl fila;
+    private final String idPrueba;
     private CasoPrueba caso;
     private Estado estado;
     private String detalle = "";
@@ -40,8 +41,10 @@ public class Iteracion {
     private Path carpetaEvidencias;
     private boolean porIndisponibilidad;
 
-    public Iteracion(FilaControl fila) {
+    /** @param idPrueba el de la columna IdPrueba o, si viene vacia, el que genera el motor de reglas */
+    public Iteracion(FilaControl fila, String idPrueba) {
         this.fila = fila;
+        this.idPrueba = idPrueba;
     }
 
     // --- decisiones del motor de reglas ---
@@ -181,7 +184,7 @@ public class Iteracion {
 
     public String resumenEnmascarado() {
         return "Caso: " + (caso == null ? fila.caso() : caso.textoCatalogo())
-                + "\nIdPrueba: " + fila.idPrueba()
+                + "\nIdPrueba: " + idPrueba
                 + "\nTipoDocumento: " + tipoDocumento
                 + "\nNumDocumento: " + (numDocumento == null ? "AUTO (listado de clientes)" : Enmascarador.documento(numDocumento))
                 + "\nClave: " + origenClave + " (****)"
@@ -195,7 +198,7 @@ public class Iteracion {
     public CasoPrueba caso() { return caso; }
     public Estado estado() { return estado; }
     public String detalle() { return detalle; }
-    public String idPrueba() { return fila.idPrueba(); }
+    public String idPrueba() { return idPrueba; }
     public TipoDocumento tipoDocumento() { return tipoDocumento; }
     public boolean documentoAutomatico() { return documentoAutomatico; }
     public String numDocumento() { return numDocumento; }

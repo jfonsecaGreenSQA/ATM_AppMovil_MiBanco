@@ -1,6 +1,7 @@
 package com.greensqa.mibanco.atm.control;
 
 import com.greensqa.mibanco.atm.data.Enmascarador;
+import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellStyle;
 import org.apache.poi.ss.usermodel.FillPatternType;
 import org.apache.poi.ss.usermodel.Font;
@@ -40,8 +41,13 @@ public final class ResultadoControlWriter {
                 cabecera.getCell(base + i).setCellStyle(estiloCabecera);
             }
             Map<Iteracion.Estado, CellStyle> estilos = estilosEstado(wb);
+            int colIdPrueba = columna(cabecera, "IdPrueba");
             for (Iteracion it : iteraciones) {
                 Row row = hoja.getRow(it.fila().fila());
+                // El IdPrueba generado (columna vacia) queda visible: es el nombre de la carpeta de evidencias
+                if (colIdPrueba >= 0 && it.fila().idPrueba().isBlank()) {
+                    row.createCell(colIdPrueba).setCellValue(it.idPrueba());
+                }
                 row.createCell(base).setCellValue(it.estado().name());
                 row.getCell(base).setCellStyle(estilos.get(it.estado()));
                 row.createCell(base + 1).setCellValue(it.detalle());
@@ -61,6 +67,15 @@ public final class ResultadoControlWriter {
         } catch (IOException e) {
             throw new IllegalStateException("No se pudo escribir " + copia, e);
         }
+    }
+
+    private static int columna(Row cabecera, String nombre) {
+        for (Cell c : cabecera) {
+            if (ControlReader.normalizar(c.getStringCellValue()).equals(ControlReader.normalizar(nombre))) {
+                return c.getColumnIndex();
+            }
+        }
+        return -1;
     }
 
     private static CellStyle estiloCabecera(XSSFWorkbook wb) {

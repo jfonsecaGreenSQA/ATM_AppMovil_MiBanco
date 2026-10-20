@@ -79,7 +79,7 @@ Cada fila de la hoja **Control** es una iteración. Las columnas se ubican por n
 | Columna | Uso |
 |---|---|
 | Caso | Caso de la lista desplegable (solo aparecen los construidos), p. ej. `38498 - Registro exitoso con CC` |
-| IdPrueba | Identificador único de la fila (p. ej. `REG-001`); nombra la carpeta de evidencias |
+| IdPrueba | Si la fila no lo trae, se genera con el prefijo del caso y un consecutivo (p. ej. `REG-CC-001`, `CTA-MOV20-001`); si se escribe uno, se usa ese. Nombra la carpeta de evidencias |
 | Ejecutar | `SI` para ejecutar; cualquier otro valor la omite |
 | TipoDocumento | `CC` o `CE`, el del caso |
 | NumDocumento | Número de 6 a 11 dígitos, o `AUTO` para tomar un cliente del listado |
