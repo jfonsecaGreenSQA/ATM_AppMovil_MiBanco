@@ -35,7 +35,8 @@ public enum CasoPrueba {
     HOME_PRODUCTO_ROTATIVO("38708", "Producto credito rotativo en el Home", "Home", TipoDocumento.CC, TipoProducto.ROTATIVO),
     HOME_PRODUCTO_PRE_APROBADO("38702", "Credito pre-aprobado en el Home", "Home", TipoDocumento.CC, TipoProducto.PRE_APROBADO),
     HOME_SALDOS("38709", "Saldos de los productos en el Home", "Home", TipoDocumento.CC, null),
-    // Cuentas (7x24): 39561 a 39565 repiten el texto de 38705 a 38709 y usan el mismo escenario
+    // Cuentas (7x24): 39561 a 39565 repiten el texto de 38705 a 38709 y usan el mismo escenario; 39565 ademas abre el
+    // detalle de la cuenta para no quedar igual a 38709
     CUENTAS_PRODUCTO_AHORRO("39561", "Producto cuenta de ahorro en el Home (Cuentas)", "Cuentas", TipoDocumento.CC,
             TipoProducto.AHORRO),
     CUENTAS_PRODUCTO_CORRIENTE("39562", "Producto cuenta corriente en el Home (Cuentas)", "Cuentas", TipoDocumento.CC,

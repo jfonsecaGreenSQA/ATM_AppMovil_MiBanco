@@ -267,6 +267,40 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
     @Override
     public void abrirCuenta(String titulo) {
         By cuenta = uiSelector("new UiSelector().description(\"" + titulo + "\").clickable(true)");
+        if (!mostrarCuenta(titulo)) {
+            throw new NoSuchElementException("No se encontro la cuenta '" + titulo + "' en el carrusel; en pantalla: '"
+                    + cuentaVisible() + "'");
+        }
+        tocar(cuenta);
+    }
+
+    @Override
+    public boolean mostrarProducto(ProductoHome producto) {
+        if (producto.seccion() == ProductoHome.Seccion.CUENTAS) {
+            return mostrarCuenta(producto.titulo());
+        }
+        deslizarAlInicio(MAX_DESLIZAMIENTOS + 1);
+        esperarPantallaQuieta();
+        int alto = driver().manage().window().getSize().height;
+        String anterior = "";
+        for (int i = 0; i <= MAX_PASOS_PRODUCTOS; i++) {
+            String fuente = driver().getPageSource();
+            // Entera y fuera de la barra superior y del menu inferior
+            Optional<int[]> limites = limitesDeTarjeta(fuente, producto);
+            if (limites.isPresent() && limites.get()[1] > alto * 0.12 && limites.get()[3] < alto * 0.88) {
+                return true;
+            }
+            if (fuente.equals(anterior)) {
+                return false;
+            }
+            anterior = fuente;
+            deslizarHaciaAbajo();
+        }
+        return false;
+    }
+
+    /** Vuelve al inicio del Home y deja en el carrusel "Tus cuentas" la diapositiva de la cuenta con ese titulo. */
+    private boolean mostrarCuenta(String titulo) {
         deslizarAlInicio(MAX_DESLIZAMIENTOS + 1);
         esperarPantallaQuieta();
         // Al volver de un detalle el Home se recarga ("Cargando..."): el carrusel aparece cuando terminan los productos
@@ -276,11 +310,18 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
         for (int i = 1; i <= diapositivas && !titulo.equals(cuentaVisible()); i++) {
             irADiapositivaDeCuentas(i);
         }
-        if (!titulo.equals(cuentaVisible())) {
-            throw new NoSuchElementException("No se encontro la cuenta '" + titulo + "' en el carrusel; en pantalla: '"
-                    + cuentaVisible() + "'");
-        }
-        tocar(cuenta);
+        return titulo.equals(cuentaVisible());
+    }
+
+    /** Bounds [x1, y1, x2, y2] de la tarjeta de credito o banner con ese titulo y monto, si esta en el arbol de UI. */
+    private static Optional<int[]> limitesDeTarjeta(String fuente, ProductoHome producto) {
+        return descendientes(documento(fuente).getDocumentElement()).stream()
+                .filter(e -> "true".equals(e.getAttribute("clickable")))
+                .filter(e -> {
+                    String desc = e.getAttribute("content-desc").replaceAll("\\s+", " ");
+                    return desc.contains(producto.titulo()) && desc.contains(producto.monto());
+                })
+                .findFirst().map(e -> limites(e.getAttribute("bounds")));
     }
 
     /**
@@ -328,8 +369,14 @@ public class HomeAndroid extends PantallaAndroid implements HomeScreen {
 
     /** Centro de unos bounds "[x1,y1][x2,y2]". */
     private static int[] centro(String bounds) {
+        int[] n = limites(bounds);
+        return new int[]{(n[0] + n[2]) / 2, (n[1] + n[3]) / 2};
+    }
+
+    /** Bounds "[x1,y1][x2,y2]" como {x1, y1, x2, y2}. */
+    private static int[] limites(String bounds) {
         String[] n = bounds.replaceAll("[\\[\\]]", ",").replaceAll(",+", ",").replaceAll("^,|,$", "").split(",");
-        return new int[]{(Integer.parseInt(n[0]) + Integer.parseInt(n[2])) / 2, (Integer.parseInt(n[1]) + Integer.parseInt(n[3])) / 2};
+        return new int[]{Integer.parseInt(n[0]), Integer.parseInt(n[1]), Integer.parseInt(n[2]), Integer.parseInt(n[3])};
     }
 
     /** Titulo de la cuenta en pantalla en el carrusel; vacio si no hay. */

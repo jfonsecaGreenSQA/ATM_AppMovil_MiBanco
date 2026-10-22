@@ -55,8 +55,9 @@ Feature: Home de la App Mi Banco
   # monto esperado de la columna Monto. Con AUTO se busca en el listado un cliente que muestre el producto.
   # Los textos validados son los observados en la app (control de cambios en Consolidacion_Casos_de_Prueba.docx).
   # En 38709 solo se validan el formato y el valor del saldo: la informacion de cada tarjeta es de 38705 a 38708.
-  # Cuentas (7x24): 39561 a 39565 repiten el texto de 38705, 38706, 38707, 38708 y 38709 y se ejecutan igual.
-  @productos @38705 @38706 @38707 @38708 @38702 @38709 @39561 @39562 @39563 @39564 @39565 @HappyPath
+  # Cuentas (7x24): 39561 a 39564 repiten el texto de 38705 a 38708 y se ejecutan igual. 39565 repite el de 38709 y
+  # ademas abre el detalle de la cuenta (cuentas.feature).
+  @productos @38705 @38706 @38707 @38708 @38702 @38709 @39561 @39562 @39563 @39564 @HappyPath
   Scenario: Producto del cliente en el Home
     Given que un cliente registrado con el producto del archivo de control inició sesión en la app
     Then ve el producto en su sección del Home con su información y formato

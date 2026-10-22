@@ -192,6 +192,11 @@ public class MotorReglas {
         if (producto.isEmpty() && fila.tipoProducto().isBlank()) {
             errores.add("TipoProducto es obligatorio en " + caso.idAzure() + ": indique el producto cuyo saldo se compara");
         }
+        // 39565 abre el detalle de la cuenta: los creditos y el banner no tienen ese detalle
+        if (caso == CasoPrueba.CUENTAS_SALDOS && informado.isPresent()
+                && informado.get() != TipoProducto.AHORRO && informado.get() != TipoProducto.CORRIENTE) {
+            errores.add("En " + caso.idAzure() + " TipoProducto debe ser AHORRO o CORRIENTE: el caso abre el detalle de la cuenta");
+        }
 
         Optional<BigDecimal> monto = Montos.desdeControl(fila.monto());
         if (!fila.monto().isBlank() && monto.isEmpty()) {

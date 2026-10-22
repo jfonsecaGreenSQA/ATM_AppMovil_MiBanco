@@ -7,6 +7,16 @@ Feature: Cuentas del cliente en la App Mi Banco
   # El cliente viene del archivo de control (AUTO = cliente REGISTRADO del listado que muestre la cuenta de ahorros).
   # Cada escenario vuelve al Home y cierra sesion al terminar (hooks).
 
+  # 39565 tiene el mismo texto que 38709 (saldos en el Home): para que no sea un duplicado, ademas de comparar el saldo
+  # de la tarjeta abre el detalle de esa cuenta y compara el saldo disponible. TipoProducto: AHORRO o CORRIENTE.
+  @productos @39565 @HappyPath
+  Scenario: Saldo de la cuenta en el Home y en su detalle
+    Given que un cliente registrado con el producto del archivo de control inició sesión en la app
+    Then ve el producto en su sección del Home con su información y formato
+    And el monto del producto coincide con el esperado del archivo de control
+    When abre el detalle de la cuenta que muestra el monto esperado
+    Then el saldo disponible del detalle coincide con el esperado del archivo de control
+
   # Los movimientos se aceptan como lista o como el aviso de que no hay movimientos en los ultimos 30 dias: ningun
   # cliente de prueba tiene movimientos (15/10/2026). La lista se valida en 39567 a 39571 cuando haya datos.
   @39566 @HappyPath

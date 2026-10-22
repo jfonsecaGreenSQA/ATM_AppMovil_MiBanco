@@ -99,6 +99,14 @@ public class ProductosHomeBusiness {
         return productos.stream().filter(p -> TipoProducto.de(p).filter(tipo::equals).isPresent()).toList();
     }
 
+    /** Deja la tarjeta en pantalla para la evidencia; si no la ubica lo deja anotado en el reporte. */
+    public void mostrar(ProductoHome producto) {
+        if (!home.mostrarProducto(producto)) {
+            Allure.step("No se pudo dejar en pantalla la tarjeta '" + producto.titulo()
+                    + "': la captura puede mostrar otro producto");
+        }
+    }
+
     private static boolean tiene(List<ProductoHome> productos, TipoProducto tipo) {
         return productos.stream().anyMatch(p -> TipoProducto.de(p).filter(tipo::equals).isPresent());
     }

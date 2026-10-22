@@ -57,6 +57,14 @@ public interface HomeScreen {
     /** Abre el detalle de la cuenta cuya tarjeta en "Tus cuentas" tiene ese titulo (p. ej. "Cuentas de ahorro **** 1234"). */
     void abrirCuenta(String titulo);
 
+    /**
+     * Deja en pantalla la tarjeta de ese producto (la lectura de productos deja el Home al final), para que la captura
+     * muestre el producto validado. Si no la encuentra deja la pantalla donde quede, sin fallar.
+     *
+     * @return true si la tarjeta quedo en pantalla
+     */
+    boolean mostrarProducto(ProductoHome producto);
+
     void abrirMenuMas();
 
     boolean hayAviso();

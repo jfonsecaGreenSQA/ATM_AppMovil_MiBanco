@@ -1,5 +1,6 @@
 package com.greensqa.mibanco.atm.steps;
 
+import com.greensqa.mibanco.atm.business.CuentasBusiness;
 import com.greensqa.mibanco.atm.business.InicioAppBusiness;
 import com.greensqa.mibanco.atm.business.LoginBusiness;
 import com.greensqa.mibanco.atm.business.ProductosHomeBusiness;
@@ -7,10 +8,12 @@ import com.greensqa.mibanco.atm.context.ContextoIteracion;
 import com.greensqa.mibanco.atm.control.Iteracion;
 import com.greensqa.mibanco.atm.data.Montos;
 import com.greensqa.mibanco.atm.data.TipoProducto;
+import com.greensqa.mibanco.atm.screens.DetalleCuentaScreen;
 import com.greensqa.mibanco.atm.screens.ProductoHome;
 import io.cucumber.java.en.And;
 import io.cucumber.java.en.Given;
 import io.cucumber.java.en.Then;
+import io.cucumber.java.en.When;
 import io.qameta.allure.Allure;
 
 import java.math.BigDecimal;
@@ -20,7 +23,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * Productos del Home (38705, 38706, 38707, 38708, 38702 y 38709). Los textos esperados son los observados en la app;
+ * Productos del Home (38705, 38706, 38707, 38708, 38702 y 38709) y saldo de la cuenta en el Home y su detalle (39565). Los textos esperados son los observados en la app;
  * las diferencias con el texto de los casos estan en el control de cambios de Consolidacion_Casos_de_Prueba.docx.
  */
 public class ProductosSteps {
@@ -36,7 +39,10 @@ public class ProductosSteps {
     private final InicioAppBusiness inicio = new InicioAppBusiness();
     private final LoginBusiness login = new LoginBusiness();
     private final ProductosHomeBusiness productos = new ProductosHomeBusiness();
+    private final CuentasBusiness cuentas = new CuentasBusiness();
     private final Iteracion iteracion = ContextoIteracion.actual();
+    /** Tarjeta cuyo monto coincidio con el esperado; null si ninguna coincidio. */
+    private ProductoHome tarjetaConMonto;
 
     @Given("que un cliente registrado con el producto del archivo de control inició sesión en la app")
     public void clienteConProductoInicioSesion() {
@@ -77,12 +83,41 @@ public class ProductosSteps {
             return;
         }
         TipoProducto tipo = iteracion.tipoProducto();
-        List<BigDecimal> montos = productos.productosDe(tipo).stream()
+        List<ProductoHome> tarjetas = productos.productosDe(tipo);
+        List<BigDecimal> montos = tarjetas.stream()
                 .map(p -> Montos.desdeApp(p.monto())).flatMap(Optional::stream).toList();
+        tarjetaConMonto = tarjetas.stream()
+                .filter(p -> Montos.desdeApp(p.monto()).filter(m -> m.compareTo(esperado) == 0).isPresent())
+                .findFirst().orElse(null);
+        // La captura del paso muestra la tarjeta con el monto esperado (o la primera del tipo si ninguna coincide)
+        Optional.ofNullable(tarjetaConMonto).or(() -> tarjetas.stream().findFirst()).ifPresent(p -> {
+                    productos.mostrar(p);
+                    Allure.step("Tarjeta en pantalla: " + p.titulo() + " | " + p.monto());
+                });
         assertThat(montos)
                 .as("Alguna tarjeta de %s muestra el monto esperado %s (montos mostrados: %d)",
                         tipo.descripcion(), Montos.texto(esperado), montos.size())
                 .anyMatch(m -> m.compareTo(esperado) == 0);
+    }
+
+    @When("abre el detalle de la cuenta que muestra el monto esperado")
+    public void abreDetalleDeLaCuentaConElMonto() {
+        assertThat(tarjetaConMonto).as("Tarjeta con el monto esperado en el Home").isNotNull();
+        assertThat(cuentas.abrirDetalle(tarjetaConMonto)).as("Se muestra el detalle de la cuenta %s", tarjetaConMonto.titulo())
+                .isTrue();
+    }
+
+    /** El detalle queda en pantalla: la captura del paso es la evidencia del saldo en el detalle. */
+    @Then("el saldo disponible del detalle coincide con el esperado del archivo de control")
+    public void saldoDelDetalleCoincide() {
+        DetalleCuentaScreen.Encabezado encabezado = cuentas.encabezado();
+        BigDecimal esperado = iteracion.montoEsperado();
+        Allure.step("Detalle: " + encabezado.tipo() + " | Saldo disponible: " + encabezado.saldoDisponible()
+                + " | Saldo en canje: " + encabezado.saldoEnCanje());
+        assertThat(Montos.desdeApp(encabezado.saldoDisponible()))
+                .as("Saldo disponible del detalle ('%s') igual al esperado %s y al de la tarjeta del Home (%s)",
+                        encabezado.saldoDisponible(), Montos.texto(esperado), tarjetaConMonto.monto())
+                .hasValueSatisfying(m -> assertThat(m.compareTo(esperado)).isZero());
     }
 
     private void validarCuenta(ProductoHome p, String titulo) {

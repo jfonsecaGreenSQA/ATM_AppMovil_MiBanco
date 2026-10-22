@@ -40,7 +40,11 @@ public class CuentasBusiness {
 
     /** Abre el detalle de la primera cuenta del tipo de la iteracion que mostro el Home. */
     public boolean abrirDetalle(Iteracion it) {
-        ProductoHome cuenta = productos.productosDe(it.tipoProducto()).get(0);
+        return abrirDetalle(productos.productosDe(it.tipoProducto()).get(0));
+    }
+
+    /** Abre el detalle de la cuenta de esa tarjeta del Home. */
+    public boolean abrirDetalle(ProductoHome cuenta) {
         Allure.step("Cuenta que se abre: " + cuenta.titulo());
         home.abrirCuenta(cuenta.titulo());
         return detalle.estaVisible(Config.segundos("espera.carga.app.segundos"));

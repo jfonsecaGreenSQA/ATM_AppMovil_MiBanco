@@ -1,7 +1,9 @@
 package com.greensqa.mibanco.atm.control;
 
 import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.DataFormatter;
+import org.apache.poi.ss.usermodel.DateUtil;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -9,6 +11,7 @@ import org.apache.poi.ss.usermodel.WorkbookFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -72,9 +75,21 @@ public final class ControlReader {
         return col;
     }
 
+    /**
+     * Un numero se lee con todos sus digitos: el formato General de Excel (el que aplica DataFormatter) lo recorta a 10
+     * cifras significativas y 257768987.22 llegaba como 257768987.2. Pasa cuando Excel guarda el Monto como numero y no
+     * como texto (p. ej. al reescribir la celda), por eso el mismo caso fallaba o pasaba segun como quedo la celda.
+     */
     private static String valor(Row row, Integer indice, DataFormatter fmt) {
         Cell c = indice == null ? null : row.getCell(indice);
-        return c == null ? "" : fmt.formatCellValue(c).trim();
+        if (c == null) {
+            return "";
+        }
+        CellType tipo = c.getCellType() == CellType.FORMULA ? c.getCachedFormulaResultType() : c.getCellType();
+        if (tipo == CellType.NUMERIC && !DateUtil.isCellDateFormatted(c)) {
+            return BigDecimal.valueOf(c.getNumericCellValue()).stripTrailingZeros().toPlainString();
+        }
+        return fmt.formatCellValue(c).trim();
     }
 
     static String normalizar(String s) {
